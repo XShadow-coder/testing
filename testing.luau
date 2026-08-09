@@ -899,43 +899,33 @@ end)
 
 -- =========================================================
 -- DRAG SYSTEM
--- MOBILE + PC
+-- PC + MOBILE
 -- =========================================================
 
+local UserInputService = game:GetService("UserInputService")
+
 local dragging = false
-
+local dragInput = nil
 local dragStart = nil
-
 local startPosition = nil
 
-local dragInput = nil
-
 local movedDistance = 0
-
 local DRAG_THRESHOLD = 8
 
-main.InputBegan:Connect(function(input)
+-- =========================================================
+-- START DRAG
+-- =========================================================
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
+button.InputBegan:Connect(function(input)
 
-        -- Do not drag when clicking
-        -- the toggle or textbox.
-        if input.Target == toggle
-            or input.Target == pathBox then
-
-            return
-        end
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
 
         dragging = true
 
-        dragStart =
-            input.Position
-
-        startPosition =
-            main.Position
+        dragInput = input
+        dragStart = input.Position
+        startPosition = button.Position
 
         movedDistance = 0
 
@@ -943,18 +933,24 @@ main.InputBegan:Connect(function(input)
 
 end)
 
-main.InputChanged:Connect(function(input)
+-- =========================================================
+-- INPUT CHANGED
+-- =========================================================
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseMovement
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
+button.InputChanged:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
 
         dragInput = input
 
     end
 
 end)
+
+-- =========================================================
+-- MOVE
+-- =========================================================
 
 UserInputService.InputChanged:Connect(function(input)
 
@@ -966,39 +962,61 @@ UserInputService.InputChanged:Connect(function(input)
         return
     end
 
-    local delta =
-        input.Position - dragStart
+    local delta = input.Position - dragStart
 
-    movedDistance =
-        math.max(
-            movedDistance,
-            math.abs(delta.X) +
-            math.abs(delta.Y)
-        )
+    movedDistance = math.max(
+        movedDistance,
+        math.abs(delta.X) + math.abs(delta.Y)
+    )
 
-    main.Position =
-        UDim2.new(
-            startPosition.X.Scale,
-            startPosition.X.Offset + delta.X,
+    button.Position = UDim2.new(
+        startPosition.X.Scale,
+        startPosition.X.Offset + delta.X,
 
-            startPosition.Y.Scale,
-            startPosition.Y.Offset + delta.Y
-        )
+        startPosition.Y.Scale,
+        startPosition.Y.Offset + delta.Y
+    )
 
 end)
 
+-- =========================================================
+-- END DRAG / CLICK
+-- =========================================================
+
 UserInputService.InputEnded:Connect(function(input)
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
 
-        dragging = false
+        return
+    end
 
-        dragInput = nil
+    if not dragging then
+        return
+    end
+
+    -- Se non ci siamo mossi abbastanza,
+    -- viene considerato un CLICK.
+    if movedDistance < DRAG_THRESHOLD then
+
+        local arceusGui = findArceusX()
+
+        if arceusGui then
+
+            hidden = not hidden
+
+            arceusGui.Enabled = not hidden
+
+            updateAppearance()
+
+        end
 
     end
+
+    dragging = false
+    dragInput = nil
+    dragStart = nil
+    startPosition = nil
 
 end)
 
