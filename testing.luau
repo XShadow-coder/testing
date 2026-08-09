@@ -1,22 +1,23 @@
 local CoreGui = game:GetService("CoreGui")
+
 local targetParent = (gethui and gethui()) or CoreGui
 
 -- =========================================================
--- FIND ARCEUS X
+-- FIND ARCEUS X RECURSIVELY
 -- =========================================================
 
 local function findArceusX()
-    for _, gui in ipairs(targetParent:GetChildren()) do
-        if gui:IsA("ScreenGui") then
 
-            local descendants = #gui:GetDescendants()
+    -- Cerca in tutto il contenitore, non solo nei figli diretti
+    for _, obj in ipairs(targetParent:GetDescendants()) do
 
-            if gui.DisplayOrder == 1999999999
-                and gui.ResetOnSpawn == true
-                and gui.IgnoreGuiInset == true
-                and descendants > 3000 then
+        if obj:IsA("ScreenGui") then
 
-                return gui
+            if obj.DisplayOrder == 1999999999
+                and obj.ResetOnSpawn == true
+                and obj.IgnoreGuiInset == true then
+
+                return obj
             end
         end
     end
@@ -25,7 +26,7 @@ local function findArceusX()
 end
 
 -- =========================================================
--- CREATE TOGGLE
+-- TOGGLE UI
 -- =========================================================
 
 local toggleGui = Instance.new("ScreenGui")
@@ -36,7 +37,7 @@ toggleGui.Parent = targetParent
 
 local button = Instance.new("TextButton")
 button.Name = "ToggleButton"
-button.Size = UDim2.new(0, 140, 0, 45)
+button.Size = UDim2.new(0, 145, 0, 45)
 button.Position = UDim2.new(0, 20, 0, 100)
 
 button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -49,6 +50,7 @@ button.Text = "Hide Arceus X"
 
 button.Active = true
 button.Draggable = true
+
 button.Parent = toggleGui
 
 local corner = Instance.new("UICorner")
@@ -56,16 +58,14 @@ corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = button
 
 -- =========================================================
--- STATE
+-- TOGGLE
 -- =========================================================
 
-local arceusGui = findArceusX()
 local hidden = false
 
 button.MouseButton1Click:Connect(function()
 
-    -- Re-scan every time
-    arceusGui = findArceusX()
+    local arceusGui = findArceusX()
 
     if not arceusGui then
         button.Text = "Arceus X Not Found"
