@@ -1,15 +1,16 @@
 -- =========================================================
--- ESP PANEL
--- MoonDex Path + GitHub Images
+-- SHADOW ESP
+-- MoonDex Path ESP + GitHub Cached Images
 -- =========================================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local LocalPlayer = Players.LocalPlayer
 
 -- =========================================================
--- CONFIG
+-- IMAGE URLS
 -- =========================================================
 
 local VISIBLE_URL =
@@ -18,28 +19,47 @@ local VISIBLE_URL =
 local HIDDEN_URL =
     "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4701.png"
 
-local IMAGE_FOLDER = "ShadowESPAssets"
-
 -- =========================================================
--- REQUEST
+-- DOWNLOAD FUNCTION
 -- =========================================================
 
-local httpRequest =
-    request
-    or http_request
-    or (syn and syn.request)
+local function getImage(url, fileName)
 
-local function downloadImage(url, fileName)
+    local folder = "ArceusXUIToggle"
+    local path = folder .. "/" .. fileName
+
+    if not isfolder(folder) then
+        pcall(function()
+            makefolder(folder)
+        end)
+    end
+
+    if isfile(path) then
+        local success, asset = pcall(function()
+            return getcustomasset(path)
+        end)
+
+        if success then
+            return asset
+        end
+    end
+
+    local httpRequest =
+        request
+        or http_request
+        or (syn and syn.request)
 
     if not httpRequest then
         return nil
     end
 
     local success, response = pcall(function()
+
         return httpRequest({
             Url = url,
             Method = "GET"
         })
+
     end)
 
     if not success or not response then
@@ -50,107 +70,71 @@ local function downloadImage(url, fileName)
         return nil
     end
 
-    local body = response.Body
+    if response.Body then
 
-    if not body then
-        return nil
-    end
-
-    if makefolder then
-        pcall(function()
-            makefolder(IMAGE_FOLDER)
-        end)
-    end
-
-    local path = IMAGE_FOLDER .. "/" .. fileName
-
-    if writefile then
-        pcall(function()
-            writefile(path, body)
-        end)
-    else
-        return nil
-    end
-
-    return path
-end
-
--- =========================================================
--- CUSTOM ASSET
--- =========================================================
-
-local function getAsset(path)
-
-    if not path then
-        return nil
-    end
-
-    if getcustomasset then
-        local success, result = pcall(function()
-            return getcustomasset(path)
+        local writeSuccess = pcall(function()
+            writefile(path, response.Body)
         end)
 
-        if success then
-            return result
+        if writeSuccess then
+
+            local assetSuccess, asset =
+                pcall(function()
+                    return getcustomasset(path)
+                end)
+
+            if assetSuccess then
+                return asset
+            end
+
         end
-    end
 
-    if getsynasset then
-        local success, result = pcall(function()
-            return getsynasset(path)
-        end)
-
-        if success then
-            return result
-        end
     end
 
     return nil
 end
 
 -- =========================================================
--- DOWNLOAD BOTH IMAGES BEFORE CREATING UI
+-- LOAD IMAGES
 -- =========================================================
 
-local visibleFile = downloadImage(
-    VISIBLE_URL,
-    "visible.png"
-)
+local visibleAsset =
+    getImage(VISIBLE_URL, "visible.png")
 
-local hiddenFile = downloadImage(
-    HIDDEN_URL,
-    "hidden.png"
-)
-
-local visibleAsset = getAsset(visibleFile)
-local hiddenAsset = getAsset(hiddenFile)
+local hiddenAsset =
+    getImage(HIDDEN_URL, "hidden.png")
 
 -- =========================================================
--- UI ROOT
+-- UI PARENT
+-- =========================================================
+
+local targetParent
+
+pcall(function()
+    targetParent = gethui()
+end)
+
+if not targetParent then
+    targetParent = game:GetService("CoreGui")
+end
+
+if not targetParent then
+    targetParent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- =========================================================
+-- CREATE GUI
 -- =========================================================
 
 local espGui = Instance.new("ScreenGui")
 
-espGui.Name = "ESPInterface"
+espGui.Name = "ShadowESPInterface"
 espGui.ResetOnSpawn = false
 espGui.IgnoreGuiInset = true
 espGui.DisplayOrder = 2147483646
+espGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local parent
-
-pcall(function()
-    parent = gethui()
-end)
-
-if not parent then
-    parent = game:GetService("CoreGui")
-end
-
-if not parent then
-    parent = LocalPlayer:WaitForChild("PlayerGui")
-end
-
-espGui.Parent = parent
+espGui.Parent = targetParent
 
 -- =========================================================
 -- MAIN PANEL
@@ -159,34 +143,58 @@ espGui.Parent = parent
 local main = Instance.new("Frame")
 
 main.Name = "ESPPanel"
-main.Size = UDim2.new(0, 330, 0, 76)
-main.Position = UDim2.new(0, 20, 0, 170)
 
-main.BackgroundColor3 = Color3.fromRGB(16, 16, 16)
-main.BackgroundTransparency = 0.08
+main.Size = UDim2.fromOffset(330, 76)
+main.Position = UDim2.fromOffset(20, 170)
+
+main.BackgroundColor3 =
+    Color3.fromRGB(12, 12, 16)
+
+main.BackgroundTransparency = 0
 
 main.BorderSizePixel = 0
 
+main.Active = true
+
 main.Parent = espGui
+
+-- =========================================================
+-- MAIN CORNER
+-- =========================================================
 
 local mainCorner = Instance.new("UICorner")
 
-mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.CornerRadius =
+    UDim.new(0, 12)
+
 mainCorner.Parent = main
 
 -- =========================================================
--- INNER GRADIENT
+-- INTERNAL GRADIENT
 -- =========================================================
 
 local gradient = Instance.new("UIGradient")
 
-gradient.Rotation = 90
+gradient.Color = ColorSequence.new({
 
-gradient.Transparency = NumberSequence.new({
-    NumberSequenceKeypoint.new(0, 0.03),
-    NumberSequenceKeypoint.new(0.5, 0.10),
-    NumberSequenceKeypoint.new(1, 0.38)
+    ColorSequenceKeypoint.new(
+        0,
+        Color3.fromRGB(7, 7, 10)
+    ),
+
+    ColorSequenceKeypoint.new(
+        0.5,
+        Color3.fromRGB(28, 28, 35)
+    ),
+
+    ColorSequenceKeypoint.new(
+        1,
+        Color3.fromRGB(7, 7, 10)
+    )
+
 })
+
+gradient.Rotation = 45
 
 gradient.Parent = main
 
@@ -194,13 +202,21 @@ gradient.Parent = main
 -- BORDER
 -- =========================================================
 
-local stroke = Instance.new("UIStroke")
+local border = Instance.new("UIStroke")
 
-stroke.Thickness = 1
-stroke.Transparency = 0.35
-stroke.Color = Color3.fromRGB(90, 90, 90)
+border.Name = "Border"
 
-stroke.Parent = main
+border.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
+
+border.Thickness = 1.5
+
+border.Color =
+    Color3.fromRGB(120, 120, 120)
+
+border.Transparency = 0.3
+
+border.Parent = main
 
 -- =========================================================
 -- IMAGE CONTAINER
@@ -210,73 +226,104 @@ local imageContainer = Instance.new("Frame")
 
 imageContainer.Name = "ImageContainer"
 
-imageContainer.Size = UDim2.new(0, 52, 0, 52)
-imageContainer.Position = UDim2.new(0, 12, 0.5, -26)
+imageContainer.AnchorPoint =
+    Vector2.new(0.5, 0.5)
 
-imageContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-imageContainer.BorderSizePixel = 0
+imageContainer.Position =
+    UDim2.fromScale(0.11, 0.5)
+
+imageContainer.Size =
+    UDim2.fromOffset(52, 52)
+
+imageContainer.BackgroundTransparency = 1
 
 imageContainer.ClipsDescendants = true
 
 imageContainer.Parent = main
 
-local imageContainerCorner = Instance.new("UICorner")
+-- =========================================================
+-- IMAGE CORNER
+-- =========================================================
 
-imageContainerCorner.CornerRadius = UDim.new(0, 9)
-imageContainerCorner.Parent = imageContainer
+local imageCorner = Instance.new("UICorner")
+
+imageCorner.CornerRadius =
+    UDim.new(0, 11)
+
+imageCorner.Parent = imageContainer
 
 -- =========================================================
--- PRELOADED VISIBLE IMAGE
+-- VISIBLE IMAGE
 -- =========================================================
 
 local visibleImage = Instance.new("ImageLabel")
 
 visibleImage.Name = "VisibleImage"
 
-visibleImage.Size = UDim2.new(1, 0, 1, 0)
-visibleImage.Position = UDim2.new(0, 0, 0, 0)
+visibleImage.Size =
+    UDim2.fromScale(1, 1)
+
+visibleImage.Position =
+    UDim2.fromScale(0, 0)
 
 visibleImage.BackgroundTransparency = 1
+
 visibleImage.BorderSizePixel = 0
 
-visibleImage.ScaleType = Enum.ScaleType.Crop
+visibleImage.Image =
+    visibleAsset or ""
 
-visibleImage.Image = visibleAsset or VISIBLE_URL
+visibleImage.ScaleType =
+    Enum.ScaleType.Fit
 
 visibleImage.Visible = false
+
+visibleImage.ZIndex = 5
 
 visibleImage.Parent = imageContainer
 
 local visibleCorner = Instance.new("UICorner")
 
-visibleCorner.CornerRadius = UDim.new(0, 9)
+visibleCorner.CornerRadius =
+    UDim.new(0, 11)
+
 visibleCorner.Parent = visibleImage
 
 -- =========================================================
--- PRELOADED HIDDEN IMAGE
+-- HIDDEN IMAGE
 -- =========================================================
 
 local hiddenImage = Instance.new("ImageLabel")
 
 hiddenImage.Name = "HiddenImage"
 
-hiddenImage.Size = UDim2.new(1, 0, 1, 0)
-hiddenImage.Position = UDim2.new(0, 0, 0, 0)
+hiddenImage.Size =
+    UDim2.fromScale(1, 1)
+
+hiddenImage.Position =
+    UDim2.fromScale(0, 0)
 
 hiddenImage.BackgroundTransparency = 1
+
 hiddenImage.BorderSizePixel = 0
 
-hiddenImage.ScaleType = Enum.ScaleType.Crop
+hiddenImage.Image =
+    hiddenAsset or ""
 
-hiddenImage.Image = hiddenAsset or HIDDEN_URL
+hiddenImage.ScaleType =
+    Enum.ScaleType.Fit
 
 hiddenImage.Visible = true
+
+hiddenImage.ZIndex = 5
 
 hiddenImage.Parent = imageContainer
 
 local hiddenCorner = Instance.new("UICorner")
 
-hiddenCorner.CornerRadius = UDim.new(0, 9)
+hiddenCorner.CornerRadius =
+    UDim.new(0, 11)
+
 hiddenCorner.Parent = hiddenImage
 
 -- =========================================================
@@ -287,18 +334,26 @@ local title = Instance.new("TextLabel")
 
 title.Name = "Title"
 
-title.Size = UDim2.new(0, 100, 0, 25)
-title.Position = UDim2.new(0, 76, 0, 8)
+title.Size =
+    UDim2.fromOffset(100, 24)
+
+title.Position =
+    UDim2.fromOffset(76, 8)
 
 title.BackgroundTransparency = 1
 
 title.Text = "ESP"
 
-title.TextColor3 = Color3.fromRGB(245, 245, 245)
-title.TextSize = 17
-title.Font = Enum.Font.GothamMedium
+title.TextColor3 =
+    Color3.fromRGB(245, 245, 245)
 
-title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextSize = 17
+
+title.Font =
+    Enum.Font.GothamMedium
+
+title.TextXAlignment =
+    Enum.TextXAlignment.Left
 
 title.Parent = main
 
@@ -310,21 +365,32 @@ local pathBox = Instance.new("TextBox")
 
 pathBox.Name = "PathBox"
 
-pathBox.Size = UDim2.new(1, -135, 0, 23)
-pathBox.Position = UDim2.new(0, 76, 1, -31)
+pathBox.Size =
+    UDim2.new(1, -135, 0, 23)
+
+pathBox.Position =
+    UDim2.new(0, 76, 1, -31)
 
 pathBox.BackgroundTransparency = 1
 
 pathBox.Text = ""
-pathBox.PlaceholderText = "MoonDex path..."
-pathBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
 
-pathBox.TextColor3 = Color3.fromRGB(220, 220, 220)
+pathBox.PlaceholderText =
+    "MoonDex path..."
+
+pathBox.PlaceholderColor3 =
+    Color3.fromRGB(120, 120, 120)
+
+pathBox.TextColor3 =
+    Color3.fromRGB(220, 220, 220)
 
 pathBox.TextSize = 12
-pathBox.Font = Enum.Font.Gotham
 
-pathBox.TextXAlignment = Enum.TextXAlignment.Left
+pathBox.Font =
+    Enum.Font.Gotham
+
+pathBox.TextXAlignment =
+    Enum.TextXAlignment.Left
 
 pathBox.ClearTextOnFocus = false
 
@@ -338,10 +404,15 @@ local line = Instance.new("Frame")
 
 line.Name = "PathLine"
 
-line.Size = UDim2.new(1, -135, 0, 1)
-line.Position = UDim2.new(0, 76, 1, -7)
+line.Size =
+    UDim2.new(1, -135, 0, 1)
 
-line.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+line.Position =
+    UDim2.new(0, 76, 1, -7)
+
+line.BackgroundColor3 =
+    Color3.fromRGB(100, 100, 100)
+
 line.BackgroundTransparency = 0.35
 
 line.BorderSizePixel = 0
@@ -349,41 +420,84 @@ line.BorderSizePixel = 0
 line.Parent = main
 
 -- =========================================================
--- ESP TOGGLE
+-- TOGGLE CIRCLE
 -- =========================================================
 
 local toggle = Instance.new("TextButton")
 
 toggle.Name = "ESPToggle"
 
-toggle.Size = UDim2.new(0, 30, 0, 30)
-toggle.Position = UDim2.new(1, -43, 0.5, -15)
+toggle.Size =
+    UDim2.fromOffset(30, 30)
+
+toggle.Position =
+    UDim2.new(1, -43, 0.5, -15)
 
 toggle.BackgroundTransparency = 1
 
 toggle.Text = "○"
 
-toggle.TextColor3 = Color3.fromRGB(220, 220, 220)
+toggle.TextColor3 =
+    Color3.fromRGB(220, 220, 220)
 
 toggle.TextSize = 27
-toggle.Font = Enum.Font.GothamMedium
+
+toggle.Font =
+    Enum.Font.GothamMedium
 
 toggle.AutoButtonColor = false
 
 toggle.Parent = main
 
 -- =========================================================
--- ESP VARIABLES
+-- NEON GLOW
+-- =========================================================
+
+local glow = Instance.new("UIStroke")
+
+glow.Name = "NeonGlow"
+
+glow.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
+
+glow.Thickness = 4
+
+glow.Transparency = 1
+
+glow.Color =
+    Color3.fromRGB(0, 200, 255)
+
+glow.Parent = main
+
+-- =========================================================
+-- PRELOAD BOTH IMAGES
+-- =========================================================
+
+task.spawn(function()
+
+    pcall(function()
+
+        ContentProvider:PreloadAsync({
+            visibleImage,
+            hiddenImage
+        })
+
+    end)
+
+end)
+
+-- =========================================================
+-- ESP STATE
 -- =========================================================
 
 local espEnabled = false
+
 local currentHighlight = nil
 
-local characterConnection
-local ancestryConnection
+local ancestryConnection = nil
 
 -- =========================================================
--- RESOLVE MOONDEX PATH
+-- FIND OBJECT FROM MOONDEX PATH
 -- =========================================================
 
 local function resolvePath(path)
@@ -395,27 +509,26 @@ local function resolvePath(path)
     path = path:gsub("^%s+", "")
     path = path:gsub("%s+$", "")
 
-    -- Remove quotes if MoonDex copied them
-    path = path:gsub("^['\"]", "")
-    path = path:gsub("['\"]$", "")
-
-    -- Convert game.Workspace.X -> Workspace.X
+    -- game.Workspace.X
     path = path:gsub("^game%.", "")
 
-    -- Convert workspace.X -> Workspace.X
+    -- workspace.X
     path = path:gsub("^workspace%.", "Workspace.")
 
     local parts = {}
 
     for part in path:gmatch("[^%.]+") do
+
         part = part:gsub("^%[", "")
         part = part:gsub("%]$", "")
-        part = part:gsub("^[\"']", "")
-        part = part:gsub("[\"']$", "")
+
+        part = part:gsub("^['\"]", "")
+        part = part:gsub("['\"]$", "")
 
         if part ~= "" then
             table.insert(parts, part)
         end
+
     end
 
     if #parts == 0 then
@@ -424,41 +537,42 @@ local function resolvePath(path)
 
     local current
 
-    -- Services
     if parts[1] == "Workspace" then
 
         current = workspace
+
         table.remove(parts, 1)
 
     elseif parts[1] == "CoreGui" then
 
-        current = game:GetService("CoreGui")
+        current =
+            game:GetService("CoreGui")
+
         table.remove(parts, 1)
 
     elseif parts[1] == "ReplicatedStorage" then
 
-        current = game:GetService("ReplicatedStorage")
+        current =
+            game:GetService("ReplicatedStorage")
+
         table.remove(parts, 1)
 
     elseif parts[1] == "Players" then
 
-        current = game:GetService("Players")
+        current =
+            game:GetService("Players")
+
         table.remove(parts, 1)
 
     elseif parts[1] == "Lighting" then
 
-        current = game:GetService("Lighting")
-        table.remove(parts, 1)
+        current =
+            game:GetService("Lighting")
 
-    elseif parts[1] == "ReplicatedFirst" then
-
-        current = game:GetService("ReplicatedFirst")
         table.remove(parts, 1)
 
     else
 
-        -- If MoonDex gives something like:
-        -- Workspace.Part
         current = workspace
 
     end
@@ -469,18 +583,20 @@ local function resolvePath(path)
             return nil
         end
 
-        current = current:FindFirstChild(name)
+        current =
+            current:FindFirstChild(name)
 
         if not current then
             return nil
         end
+
     end
 
     return current
 end
 
 -- =========================================================
--- CREATE HIGHLIGHT
+-- REMOVE HIGHLIGHT
 -- =========================================================
 
 local function removeHighlight()
@@ -492,9 +608,14 @@ local function removeHighlight()
         end)
 
         currentHighlight = nil
+
     end
 
 end
+
+-- =========================================================
+-- CREATE HIGHLIGHT
+-- =========================================================
 
 local function createHighlight(target)
 
@@ -504,34 +625,45 @@ local function createHighlight(target)
         return false
     end
 
-    if not target:IsA("Model")
-        and not target:IsA("BasePart")
-        and not target:IsA("Folder") then
+    local adornee = nil
 
-        return false
-    end
+    if target:IsA("Model")
+        or target:IsA("BasePart") then
 
-    local adornee = target
+        adornee = target
 
-    -- Highlight works directly with Model/BasePart.
-    -- If MoonDex gives a Folder, try to find a suitable object.
-    if target:IsA("Folder") then
+    elseif target:IsA("Folder") then
 
         adornee =
-            target:FindFirstChildWhichIsA("Model", true)
-            or target:FindFirstChildWhichIsA("BasePart", true)
+            target:FindFirstChildWhichIsA(
+                "Model",
+                true
+            )
 
         if not adornee then
-            return false
+
+            adornee =
+                target:FindFirstChildWhichIsA(
+                    "BasePart",
+                    true
+                )
+
         end
 
     end
 
-    local highlight = Instance.new("Highlight")
+    if not adornee then
+        return false
+    end
 
-    highlight.Name = "ShadowESP"
+    local highlight =
+        Instance.new("Highlight")
 
-    highlight.Adornee = adornee
+    highlight.Name =
+        "ShadowESP"
+
+    highlight.Adornee =
+        adornee
 
     highlight.FillColor =
         Color3.fromRGB(0, 200, 255)
@@ -559,9 +691,8 @@ end
 
 local function startESP()
 
-    local path = pathBox.Text
-
-    local target = resolvePath(path)
+    local target =
+        resolvePath(pathBox.Text)
 
     if not target then
 
@@ -571,7 +702,8 @@ local function startESP()
         return false
     end
 
-    local success = createHighlight(target)
+    local success =
+        createHighlight(target)
 
     if not success then
 
@@ -584,33 +716,39 @@ local function startESP()
     pathBox.TextColor3 =
         Color3.fromRGB(220, 220, 220)
 
-    -- Recreate if the target gets destroyed/recreated.
     if ancestryConnection then
         ancestryConnection:Disconnect()
     end
 
-    ancestryConnection = target.AncestryChanged:Connect(function(_, parent)
-
-        if espEnabled and not parent then
-
-            task.defer(function()
+    ancestryConnection =
+        target.AncestryChanged:Connect(
+            function(_, parent)
 
                 if not espEnabled then
                     return
                 end
 
-                local newTarget =
-                    resolvePath(pathBox.Text)
+                if not parent then
 
-                if newTarget then
-                    createHighlight(newTarget)
+                    task.defer(function()
+
+                        if not espEnabled then
+                            return
+                        end
+
+                        local newTarget =
+                            resolvePath(pathBox.Text)
+
+                        if newTarget then
+                            createHighlight(newTarget)
+                        end
+
+                    end)
+
                 end
 
-            end)
-
-        end
-
-    end)
+            end
+        )
 
     return true
 end
@@ -623,103 +761,128 @@ local function stopESP()
 
     removeHighlight()
 
-    if characterConnection then
-        characterConnection:Disconnect()
-        characterConnection = nil
-    end
-
     if ancestryConnection then
+
         ancestryConnection:Disconnect()
+
         ancestryConnection = nil
+
     end
 
 end
 
 -- =========================================================
--- UPDATE UI
+-- UPDATE VISUAL
 -- =========================================================
 
-local function updateUI()
+local function updateAppearance()
 
     if espEnabled then
 
-        -- Filled circle
-        toggle.Text = "●"
-        toggle.TextColor3 =
-            Color3.fromRGB(0, 200, 255)
-
-        -- INSTANT IMAGE SWITCH
+        -- Visible image
         hiddenImage.Visible = false
         visibleImage.Visible = true
 
-        -- Neon cyan border
-        stroke.Color =
+        -- Cyan border
+        border.Color =
             Color3.fromRGB(0, 200, 255)
 
-        stroke.Transparency = 0.05
+        border.Thickness = 2
 
-        -- Slight glow effect
-        stroke.Thickness = 1.5
+        border.Transparency = 0
+
+        -- Neon
+        glow.Color =
+            Color3.fromRGB(0, 200, 255)
+
+        glow.Thickness = 5
+
+        glow.Transparency = 0.72
+
+        -- Filled circle
+        toggle.Text = "●"
+
+        toggle.TextColor3 =
+            Color3.fromRGB(0, 200, 255)
 
     else
 
-        -- Empty circle
-        toggle.Text = "○"
-        toggle.TextColor3 =
-            Color3.fromRGB(220, 220, 220)
-
-        -- INSTANT IMAGE SWITCH
+        -- Hidden image
         visibleImage.Visible = false
         hiddenImage.Visible = true
 
-        -- Normal white/gray border
-        stroke.Color =
-            Color3.fromRGB(120, 120, 120)
+        -- White border
+        border.Color =
+            Color3.fromRGB(255, 255, 255)
 
-        stroke.Transparency = 0.35
+        border.Thickness = 2
 
-        stroke.Thickness = 1
+        border.Transparency = 0.1
+
+        -- No neon
+        glow.Transparency = 1
+
+        -- Empty circle
+        toggle.Text = "○"
+
+        toggle.TextColor3 =
+            Color3.fromRGB(220, 220, 220)
 
     end
 
 end
 
 -- =========================================================
--- TOGGLE CLICK
+-- TOGGLE
 -- =========================================================
 
 toggle.MouseButton1Click:Connect(function()
 
-    if not espEnabled then
-
-        local target = resolvePath(pathBox.Text)
-
-        if not target then
-
-            pathBox.TextColor3 =
-                Color3.fromRGB(255, 100, 100)
-
-            return
-        end
-
-        espEnabled = true
-
-        startESP()
-
-    else
+    if espEnabled then
 
         espEnabled = false
 
         stopESP()
 
+        updateAppearance()
+
+        return
+
     end
 
-    updateUI()
+    local target =
+        resolvePath(pathBox.Text)
+
+    if not target then
+
+        pathBox.TextColor3 =
+            Color3.fromRGB(255, 100, 100)
+
+        return
+    end
+
+    local success =
+        createHighlight(target)
+
+    if not success then
+
+        pathBox.TextColor3 =
+            Color3.fromRGB(255, 100, 100)
+
+        return
+    end
+
+    pathBox.TextColor3 =
+        Color3.fromRGB(220, 220, 220)
+
+    espEnabled = true
+
+    updateAppearance()
 
 end)
 
 -- =========================================================
--- PATH ENTER
+-- ENTER PATH
 -- =========================================================
 
 pathBox.FocusLost:Connect(function(enterPressed)
@@ -728,38 +891,28 @@ pathBox.FocusLost:Connect(function(enterPressed)
         return
     end
 
-    if not espEnabled then
-        return
+    if espEnabled then
+        startESP()
     end
-
-    startESP()
 
 end)
 
 -- =========================================================
 -- DRAG SYSTEM
+-- MOBILE + PC
 -- =========================================================
 
 local dragging = false
-local dragInput
-local dragStart
-local startPos
 
-local function updateDrag(input)
+local dragStart = nil
 
-    local delta =
-        input.Position - dragStart
+local startPosition = nil
 
-    main.Position =
-        UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
+local dragInput = nil
 
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
+local movedDistance = 0
 
-end
+local DRAG_THRESHOLD = 8
 
 main.InputBegan:Connect(function(input)
 
@@ -768,8 +921,8 @@ main.InputBegan:Connect(function(input)
         or input.UserInputType ==
         Enum.UserInputType.Touch then
 
-        -- Don't start dragging when interacting
-        -- with the textbox or toggle.
+        -- Do not drag when clicking
+        -- the toggle or textbox.
         if input.Target == toggle
             or input.Target == pathBox then
 
@@ -778,19 +931,13 @@ main.InputBegan:Connect(function(input)
 
         dragging = true
 
-        dragStart = input.Position
-        startPos = main.Position
+        dragStart =
+            input.Position
 
-        input.Changed:Connect(function()
+        startPosition =
+            main.Position
 
-            if input.UserInputState ==
-                Enum.UserInputState.End then
-
-                dragging = false
-
-            end
-
-        end)
+        movedDistance = 0
 
     end
 
@@ -811,9 +958,45 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
 
-    if input == dragInput and dragging then
+    if not dragging then
+        return
+    end
 
-        updateDrag(input)
+    if input ~= dragInput then
+        return
+    end
+
+    local delta =
+        input.Position - dragStart
+
+    movedDistance =
+        math.max(
+            movedDistance,
+            math.abs(delta.X) +
+            math.abs(delta.Y)
+        )
+
+    main.Position =
+        UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        dragging = false
+
+        dragInput = nil
 
     end
 
@@ -825,4 +1008,4 @@ end)
 
 espEnabled = false
 
-updateUI()
+updateAppearance()
