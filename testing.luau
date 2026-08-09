@@ -899,56 +899,45 @@ end)
 
 -- =========================================================
 -- DRAG SYSTEM
--- MOBILE + PC
+-- PC + MOBILE
 -- =========================================================
 
 local dragging = false
-
+local dragInput = nil
 local dragStart = nil
-
 local startPosition = nil
 
-local dragInput = nil
-
 local movedDistance = 0
-
 local DRAG_THRESHOLD = 8
 
-main.InputBegan:Connect(function(input)
+button.InputBegan:Connect(function(input)
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
-
-        -- Do not drag when clicking
-        -- the toggle or textbox.
-        if input.Target == toggle
-            or input.Target == pathBox then
-
-            return
-        end
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
 
         dragging = true
-
-        dragStart =
-            input.Position
-
-        startPosition =
-            main.Position
-
+        dragInput = input
+        dragStart = input.Position
+        startPosition = button.Position
         movedDistance = 0
+
+        input.Changed:Connect(function()
+
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+                dragInput = nil
+            end
+
+        end)
 
     end
 
 end)
 
-main.InputChanged:Connect(function(input)
+button.InputChanged:Connect(function(input)
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseMovement
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
 
         dragInput = input
 
@@ -966,39 +955,54 @@ UserInputService.InputChanged:Connect(function(input)
         return
     end
 
-    local delta =
-        input.Position - dragStart
+    local delta = input.Position - dragStart
 
-    movedDistance =
-        math.max(
-            movedDistance,
-            math.abs(delta.X) +
-            math.abs(delta.Y)
-        )
+    movedDistance = math.max(
+        movedDistance,
+        math.abs(delta.X) + math.abs(delta.Y)
+    )
 
-    main.Position =
-        UDim2.new(
-            startPosition.X.Scale,
-            startPosition.X.Offset + delta.X,
+    button.Position = UDim2.new(
+        startPosition.X.Scale,
+        startPosition.X.Offset + delta.X,
 
-            startPosition.Y.Scale,
-            startPosition.Y.Offset + delta.Y
-        )
+        startPosition.Y.Scale,
+        startPosition.Y.Offset + delta.Y
+    )
 
 end)
 
 UserInputService.InputEnded:Connect(function(input)
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
 
-        dragging = false
+    if not dragging then
+        return
+    end
 
-        dragInput = nil
+    -- Se si è mosso meno di 8 pixel,
+    -- viene considerato un click.
+    if movedDistance < DRAG_THRESHOLD then
+
+        local arceusGui = findArceusX()
+
+        if arceusGui then
+
+            hidden = not hidden
+
+            arceusGui.Enabled = not hidden
+
+            updateAppearance()
+
+        end
 
     end
+
+    dragging = false
+    dragInput = nil
 
 end)
 
