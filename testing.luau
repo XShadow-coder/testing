@@ -2,42 +2,69 @@ local CoreGui = game:GetService("CoreGui")
 
 local targetParent = (gethui and gethui()) or CoreGui
 
--- Detector
+-- =========================================================
+-- CONFIG
+-- =========================================================
+
+local ARCEUS_DISPLAY_ORDER = 1999999999
+
+-- =========================================================
+-- FIND ARCEUS X
+-- =========================================================
 
 local function findArceusX()
+    local bestGui = nil
+    local bestScore = 0
+
     for _, gui in ipairs(targetParent:GetChildren()) do
 
         if gui:IsA("ScreenGui") then
 
-            local correctDisplayOrder =
-                gui.DisplayOrder == 1999999999
+            local score = 0
 
-            local correctReset =
-                gui.ResetOnSpawn == false
+            -- Caratteristiche osservate nella GUI di Arceus X
+            if gui.DisplayOrder == ARCEUS_DISPLAY_ORDER then
+                score += 5
+            end
 
-            local correctInset =
-                gui.IgnoreGuiInset == true
+            if gui.ResetOnSpawn == true then
+                score += 1
+            end
 
-            local descendantCount =
-                #gui:GetDescendants()
+            if gui.IgnoreGuiInset == true then
+                score += 1
+            end
 
-            local enoughObjects =
-                descendantCount > 3000
+            -- La GUI osservata aveva oltre 4000 descendants
+            local descendants = #gui:GetDescendants()
 
-            if correctDisplayOrder
-                and correctReset
-                and correctInset
-                and enoughObjects then
+            if descendants >= 3000 then
+                score += 3
+            end
 
-                return gui
+            -- La GUI di Arceus X contiene moltissimi elementi UI
+            if descendants >= 4000 then
+                score += 1
+            end
+
+            if score > bestScore then
+                bestScore = score
+                bestGui = gui
             end
         end
+    end
+
+    -- Richiediamo almeno una corrispondenza forte.
+    if bestScore >= 5 then
+        return bestGui
     end
 
     return nil
 end
 
--- UI T
+-- =========================================================
+-- CREATE TOGGLE UI
+-- =========================================================
 
 local toggleGui = Instance.new("ScreenGui")
 toggleGui.Name = "ArceusXVisibilityToggle"
@@ -47,11 +74,11 @@ toggleGui.Parent = targetParent
 
 local button = Instance.new("TextButton")
 button.Name = "ToggleButton"
-button.Size = UDim2.new(0, 145, 0, 45)
+button.Size = UDim2.new(0, 140, 0, 45)
 button.Position = UDim2.new(0, 20, 0, 100)
 
-button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-button.BackgroundTransparency = 0.15
+button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+button.BackgroundTransparency = 0.1
 
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.TextSize = 14
@@ -67,16 +94,17 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = button
 
--- STATE
-
-local hidden = false
-local arceusGui = findArceusX()
-
+-- =========================================================
 -- TOGGLE
+-- =========================================================
+
+local arceusGui = findArceusX()
+local hidden = false
 
 button.MouseButton1Click:Connect(function()
 
-    -- Detect UI
+    -- Cerca nuovamente la GUI se è stata ricreata
+    -- oppure se non era disponibile inizialmente.
     if not arceusGui or not arceusGui.Parent then
         arceusGui = findArceusX()
     end
@@ -92,9 +120,9 @@ button.MouseButton1Click:Connect(function()
 
     if hidden then
         button.Text = "Show Arceus X"
-        button.BackgroundColor3 = Color3.fromRGB(150, 45, 45)
+        button.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
     else
         button.Text = "Hide Arceus X"
-        button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     end
 end)
