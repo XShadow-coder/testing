@@ -1,6 +1,7 @@
 -- =========================================================
 -- SHADOW ESP
 -- MoonDex Path ESP + GitHub Cached Images
+-- PC + MOBILE
 -- =========================================================
 
 local Players = game:GetService("Players")
@@ -20,7 +21,7 @@ local HIDDEN_URL =
     "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4701.png"
 
 -- =========================================================
--- DOWNLOAD FUNCTION
+-- IMAGE CACHE
 -- =========================================================
 
 local function getImage(url, fileName)
@@ -28,22 +29,25 @@ local function getImage(url, fileName)
     local folder = "ArceusXUIToggle"
     local path = folder .. "/" .. fileName
 
-    if not isfolder(folder) then
-        pcall(function()
+    pcall(function()
+        if not isfolder(folder) then
             makefolder(folder)
-        end)
-    end
+        end
+    end)
 
+    -- Already cached
     if isfile(path) then
+
         local success, asset = pcall(function()
             return getcustomasset(path)
         end)
 
-        if success then
+        if success and asset then
             return asset
         end
     end
 
+    -- Request function
     local httpRequest =
         request
         or http_request
@@ -70,32 +74,31 @@ local function getImage(url, fileName)
         return nil
     end
 
-    if response.Body then
+    if not response.Body then
+        return nil
+    end
 
-        local writeSuccess = pcall(function()
-            writefile(path, response.Body)
-        end)
+    local writeSuccess = pcall(function()
+        writefile(path, response.Body)
+    end)
 
-        if writeSuccess then
+    if not writeSuccess then
+        return nil
+    end
 
-            local assetSuccess, asset =
-                pcall(function()
-                    return getcustomasset(path)
-                end)
+    local assetSuccess, asset = pcall(function()
+        return getcustomasset(path)
+    end)
 
-            if assetSuccess then
-                return asset
-            end
-
-        end
-
+    if assetSuccess then
+        return asset
     end
 
     return nil
 end
 
 -- =========================================================
--- LOAD IMAGES
+-- LOAD BOTH IMAGES BEFORE UI
 -- =========================================================
 
 local visibleAsset =
@@ -115,15 +118,18 @@ pcall(function()
 end)
 
 if not targetParent then
-    targetParent = game:GetService("CoreGui")
+    pcall(function()
+        targetParent = game:GetService("CoreGui")
+    end)
 end
 
 if not targetParent then
-    targetParent = LocalPlayer:WaitForChild("PlayerGui")
+    targetParent =
+        LocalPlayer:WaitForChild("PlayerGui")
 end
 
 -- =========================================================
--- CREATE GUI
+-- GUI
 -- =========================================================
 
 local espGui = Instance.new("ScreenGui")
@@ -159,7 +165,7 @@ main.Active = true
 main.Parent = espGui
 
 -- =========================================================
--- MAIN CORNER
+-- CORNER
 -- =========================================================
 
 local mainCorner = Instance.new("UICorner")
@@ -195,7 +201,6 @@ gradient.Color = ColorSequence.new({
 })
 
 gradient.Rotation = 45
-
 gradient.Parent = main
 
 -- =========================================================
@@ -205,18 +210,37 @@ gradient.Parent = main
 local border = Instance.new("UIStroke")
 
 border.Name = "Border"
-
 border.ApplyStrokeMode =
     Enum.ApplyStrokeMode.Border
 
-border.Thickness = 1.5
+border.Thickness = 2
 
 border.Color =
-    Color3.fromRGB(120, 120, 120)
+    Color3.fromRGB(255, 255, 255)
 
-border.Transparency = 0.3
+border.Transparency = 0.1
 
 border.Parent = main
+
+-- =========================================================
+-- NEON GLOW
+-- =========================================================
+
+local glow = Instance.new("UIStroke")
+
+glow.Name = "NeonGlow"
+
+glow.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
+
+glow.Thickness = 5
+
+glow.Transparency = 1
+
+glow.Color =
+    Color3.fromRGB(0, 200, 255)
+
+glow.Parent = main
 
 -- =========================================================
 -- IMAGE CONTAINER
@@ -239,6 +263,8 @@ imageContainer.BackgroundTransparency = 1
 
 imageContainer.ClipsDescendants = true
 
+imageContainer.ZIndex = 5
+
 imageContainer.Parent = main
 
 -- =========================================================
@@ -260,11 +286,14 @@ local visibleImage = Instance.new("ImageLabel")
 
 visibleImage.Name = "VisibleImage"
 
-visibleImage.Size =
-    UDim2.fromScale(1, 1)
+visibleImage.AnchorPoint =
+    Vector2.new(0.5, 0.5)
 
 visibleImage.Position =
-    UDim2.fromScale(0, 0)
+    UDim2.fromScale(0.5, 0.5)
+
+visibleImage.Size =
+    UDim2.fromScale(1, 1)
 
 visibleImage.BackgroundTransparency = 1
 
@@ -278,7 +307,7 @@ visibleImage.ScaleType =
 
 visibleImage.Visible = false
 
-visibleImage.ZIndex = 5
+visibleImage.ZIndex = 6
 
 visibleImage.Parent = imageContainer
 
@@ -297,11 +326,14 @@ local hiddenImage = Instance.new("ImageLabel")
 
 hiddenImage.Name = "HiddenImage"
 
-hiddenImage.Size =
-    UDim2.fromScale(1, 1)
+hiddenImage.AnchorPoint =
+    Vector2.new(0.5, 0.5)
 
 hiddenImage.Position =
-    UDim2.fromScale(0, 0)
+    UDim2.fromScale(0.5, 0.5)
+
+hiddenImage.Size =
+    UDim2.fromScale(1, 1)
 
 hiddenImage.BackgroundTransparency = 1
 
@@ -315,7 +347,7 @@ hiddenImage.ScaleType =
 
 hiddenImage.Visible = true
 
-hiddenImage.ZIndex = 5
+hiddenImage.ZIndex = 6
 
 hiddenImage.Parent = imageContainer
 
@@ -354,6 +386,8 @@ title.Font =
 
 title.TextXAlignment =
     Enum.TextXAlignment.Left
+
+title.ZIndex = 4
 
 title.Parent = main
 
@@ -394,10 +428,12 @@ pathBox.TextXAlignment =
 
 pathBox.ClearTextOnFocus = false
 
+pathBox.ZIndex = 4
+
 pathBox.Parent = main
 
 -- =========================================================
--- PATH LINE
+-- UNDERLINE
 -- =========================================================
 
 local line = Instance.new("Frame")
@@ -417,10 +453,12 @@ line.BackgroundTransparency = 0.35
 
 line.BorderSizePixel = 0
 
+line.ZIndex = 4
+
 line.Parent = main
 
 -- =========================================================
--- TOGGLE CIRCLE
+-- TOGGLE
 -- =========================================================
 
 local toggle = Instance.new("TextButton")
@@ -447,30 +485,12 @@ toggle.Font =
 
 toggle.AutoButtonColor = false
 
+toggle.ZIndex = 10
+
 toggle.Parent = main
 
 -- =========================================================
--- NEON GLOW
--- =========================================================
-
-local glow = Instance.new("UIStroke")
-
-glow.Name = "NeonGlow"
-
-glow.ApplyStrokeMode =
-    Enum.ApplyStrokeMode.Border
-
-glow.Thickness = 4
-
-glow.Transparency = 1
-
-glow.Color =
-    Color3.fromRGB(0, 200, 255)
-
-glow.Parent = main
-
--- =========================================================
--- PRELOAD BOTH IMAGES
+-- PRELOAD
 -- =========================================================
 
 task.spawn(function()
@@ -493,11 +513,10 @@ end)
 local espEnabled = false
 
 local currentHighlight = nil
-
 local ancestryConnection = nil
 
 -- =========================================================
--- FIND OBJECT FROM MOONDEX PATH
+-- RESOLVE MOONDEX PATH
 -- =========================================================
 
 local function resolvePath(path)
@@ -509,10 +528,8 @@ local function resolvePath(path)
     path = path:gsub("^%s+", "")
     path = path:gsub("%s+$", "")
 
-    -- game.Workspace.X
     path = path:gsub("^game%.", "")
 
-    -- workspace.X
     path = path:gsub("^workspace%.", "Workspace.")
 
     local parts = {}
@@ -632,7 +649,7 @@ local function createHighlight(target)
 
         adornee = target
 
-    elseif target:IsA("Folder") then
+    else
 
         adornee =
             target:FindFirstChildWhichIsA(
@@ -668,17 +685,24 @@ local function createHighlight(target)
     highlight.FillColor =
         Color3.fromRGB(0, 200, 255)
 
-    highlight.FillTransparency = 0.5
+    highlight.FillTransparency =
+        0.5
 
     highlight.OutlineColor =
         Color3.fromRGB(255, 255, 255)
 
-    highlight.OutlineTransparency = 0
+    highlight.OutlineTransparency =
+        0
 
     highlight.DepthMode =
         Enum.HighlightDepthMode.AlwaysOnTop
 
-    highlight.Parent = espGui
+    -- Put it directly into the target's parent
+    -- so Roblox renders the Highlight correctly.
+    local parent =
+        adornee.Parent or workspace
+
+    highlight.Parent = parent
 
     currentHighlight = highlight
 
@@ -718,6 +742,7 @@ local function startESP()
 
     if ancestryConnection then
         ancestryConnection:Disconnect()
+        ancestryConnection = nil
     end
 
     ancestryConnection =
@@ -772,34 +797,32 @@ local function stopESP()
 end
 
 -- =========================================================
--- UPDATE VISUAL
+-- UPDATE UI
 -- =========================================================
 
 local function updateAppearance()
 
     if espEnabled then
 
-        -- Visible image
+        -- IMAGE
         hiddenImage.Visible = false
         visibleImage.Visible = true
 
-        -- Cyan border
+        -- BORDER
         border.Color =
             Color3.fromRGB(0, 200, 255)
 
         border.Thickness = 2
-
         border.Transparency = 0
 
-        -- Neon
+        -- GLOW
         glow.Color =
             Color3.fromRGB(0, 200, 255)
 
         glow.Thickness = 5
-
         glow.Transparency = 0.72
 
-        -- Filled circle
+        -- CIRCLE
         toggle.Text = "●"
 
         toggle.TextColor3 =
@@ -807,22 +830,21 @@ local function updateAppearance()
 
     else
 
-        -- Hidden image
+        -- IMAGE
         visibleImage.Visible = false
         hiddenImage.Visible = true
 
-        -- White border
+        -- BORDER
         border.Color =
             Color3.fromRGB(255, 255, 255)
 
         border.Thickness = 2
-
         border.Transparency = 0.1
 
-        -- No neon
+        -- GLOW OFF
         glow.Transparency = 1
 
-        -- Empty circle
+        -- CIRCLE
         toggle.Text = "○"
 
         toggle.TextColor3 =
@@ -833,7 +855,7 @@ local function updateAppearance()
 end
 
 -- =========================================================
--- TOGGLE
+-- TOGGLE BUTTON
 -- =========================================================
 
 toggle.MouseButton1Click:Connect(function()
@@ -847,7 +869,6 @@ toggle.MouseButton1Click:Connect(function()
         updateAppearance()
 
         return
-
     end
 
     local target =
@@ -902,55 +923,108 @@ end)
 -- PC + MOBILE
 -- =========================================================
 
-local UserInputService = game:GetService("UserInputService")
-
 local dragging = false
-local dragInput = nil
+
 local dragStart = nil
 local startPosition = nil
 
+local dragInput = nil
+
 local movedDistance = 0
+
 local DRAG_THRESHOLD = 8
 
--- =========================================================
--- START DRAG
--- =========================================================
+-- ---------------------------------------------------------
+-- Check whether position is over a protected control
+-- ---------------------------------------------------------
 
-button.InputBegan:Connect(function(input)
+local function isOverControl(position)
 
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
+    local controls = {
+        pathBox,
+        toggle
+    }
 
-        dragging = true
+    for _, object in ipairs(controls) do
 
-        dragInput = input
-        dragStart = input.Position
-        startPosition = button.Position
+        if object.Visible then
 
-        movedDistance = 0
+            local pos =
+                object.AbsolutePosition
+
+            local size =
+                object.AbsoluteSize
+
+            if position.X >= pos.X
+                and position.X <= pos.X + size.X
+                and position.Y >= pos.Y
+                and position.Y <= pos.Y + size.Y then
+
+                return true
+            end
+
+        end
 
     end
 
-end)
+    return false
+end
 
--- =========================================================
--- INPUT CHANGED
--- =========================================================
+-- ---------------------------------------------------------
+-- Start drag
+-- ---------------------------------------------------------
 
-button.InputChanged:Connect(function(input)
+UserInputService.InputBegan:Connect(function(input)
 
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType ~=
+        Enum.UserInputType.MouseButton1
+        and input.UserInputType ~=
+        Enum.UserInputType.Touch then
 
-        dragInput = input
-
+        return
     end
 
+    local position =
+        input.Position
+
+    local mainPos =
+        main.AbsolutePosition
+
+    local mainSize =
+        main.AbsoluteSize
+
+    -- Check if input is inside panel
+    local insidePanel =
+        position.X >= mainPos.X
+        and position.X <= mainPos.X + mainSize.X
+        and position.Y >= mainPos.Y
+        and position.Y <= mainPos.Y + mainSize.Y
+
+    if not insidePanel then
+        return
+    end
+
+    -- Don't drag when typing/clicking toggle
+    if isOverControl(position) then
+        return
+    end
+
+    dragging = true
+
+    dragInput = input
+
+    dragStart = position
+
+    startPosition =
+        main.Position
+
+    movedDistance = 0
+
 end)
 
--- =========================================================
--- MOVE
--- =========================================================
+-- ---------------------------------------------------------
+-- Mouse / Touch movement
+-- ---------------------------------------------------------
 
 UserInputService.InputChanged:Connect(function(input)
 
@@ -958,35 +1032,48 @@ UserInputService.InputChanged:Connect(function(input)
         return
     end
 
-    if input ~= dragInput then
+    if input.UserInputType ~=
+        Enum.UserInputType.MouseMovement
+        and input.UserInputType ~=
+        Enum.UserInputType.Touch then
+
         return
     end
 
-    local delta = input.Position - dragStart
+    local currentPosition =
+        input.Position
+
+    local delta =
+        currentPosition - dragStart
 
     movedDistance = math.max(
         movedDistance,
-        math.abs(delta.X) + math.abs(delta.Y)
+        math.abs(delta.X) +
+        math.abs(delta.Y)
     )
 
-    button.Position = UDim2.new(
+    main.Position = UDim2.new(
+
         startPosition.X.Scale,
         startPosition.X.Offset + delta.X,
 
         startPosition.Y.Scale,
         startPosition.Y.Offset + delta.Y
+
     )
 
 end)
 
--- =========================================================
--- END DRAG / CLICK
--- =========================================================
+-- ---------------------------------------------------------
+-- End drag
+-- ---------------------------------------------------------
 
 UserInputService.InputEnded:Connect(function(input)
 
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1
-        and input.UserInputType ~= Enum.UserInputType.Touch then
+    if input.UserInputType ~=
+        Enum.UserInputType.MouseButton1
+        and input.UserInputType ~=
+        Enum.UserInputType.Touch then
 
         return
     end
@@ -995,25 +1082,8 @@ UserInputService.InputEnded:Connect(function(input)
         return
     end
 
-    -- Se non ci siamo mossi abbastanza,
-    -- viene considerato un CLICK.
-    if movedDistance < DRAG_THRESHOLD then
-
-        local arceusGui = findArceusX()
-
-        if arceusGui then
-
-            hidden = not hidden
-
-            arceusGui.Enabled = not hidden
-
-            updateAppearance()
-
-        end
-
-    end
-
     dragging = false
+
     dragInput = nil
     dragStart = nil
     startPosition = nil
