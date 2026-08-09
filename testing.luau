@@ -1,11 +1,14 @@
 -- =========================================================
--- ESP INTERFACE
+-- MOONDEX OBJECT ESP
 -- =========================================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local ContentProvider = game:GetService("ContentProvider")
 
 local LocalPlayer = Players.LocalPlayer
+
 
 -- =========================================================
 -- GITHUB IMAGES
@@ -19,120 +22,126 @@ local HIDDEN_URL =
 
 
 -- =========================================================
--- IMAGE DOWNLOADER
+-- LOCAL IMAGE CACHE
 -- =========================================================
 
-local requestFunc = request or http_request
-local assetFunc = getsynasset or getcustomasset
+local VISIBLE_FILE = "ShadowESP_Visible.png"
+local HIDDEN_FILE = "ShadowESP_Hidden.png"
 
 local function downloadImage(url, filename)
 
-    if not requestFunc then
-        warn("[ESP] request/http_request not found")
+    if not (request or http_request) then
         return nil
     end
 
-    if not assetFunc then
-        warn("[ESP] getsynasset/getcustomasset not found")
-        return nil
-    end
+    local req = request or http_request
 
-    local folder = "ArceusXUIToggle"
-
-    pcall(function()
-        if not isfolder(folder) then
-            makefolder(folder)
-        end
-    end)
-
-    local path = folder .. "/" .. filename
-
-    -- Usa il file già presente quando possibile
-    local success, result = pcall(function()
-        if isfile(path) then
-            return assetFunc(path)
-        end
-
-        local response = requestFunc({
+    local success, response = pcall(function()
+        return req({
             Url = url,
             Method = "GET"
         })
-
-        if not response then
-            error("No response")
-        end
-
-        if response.StatusCode and response.StatusCode ~= 200 then
-            error("HTTP " .. tostring(response.StatusCode))
-        end
-
-        if not response.Body then
-            error("Empty response body")
-        end
-
-        writefile(path, response.Body)
-
-        return assetFunc(path)
     end)
 
-    if success then
-        return result
+    if not success or not response then
+        return nil
     end
 
-    warn("[ESP] Failed to load image:", filename, result)
+    if response.StatusCode ~= 200 then
+        return nil
+    end
 
-    return nil
+    if not writefile then
+        return nil
+    end
+
+    local ok = pcall(function()
+        writefile(filename, response.Body)
+    end)
+
+    if not ok then
+        return nil
+    end
+
+    if not getcustomasset and not getsynasset then
+        return nil
+    end
+
+    local assetFunction = getcustomasset or getsynasset
+
+    local asset
+
+    pcall(function()
+        asset = assetFunction(filename)
+    end)
+
+    return asset
+end
+
+
+local visibleImage
+local hiddenImage
+
+
+-- Try to load cached files first
+if getcustomasset or getsynasset then
+
+    local assetFunction = getcustomasset or getsynasset
+
+    if isfile and isfile(VISIBLE_FILE) then
+        pcall(function()
+            visibleImage = assetFunction(VISIBLE_FILE)
+        end)
+    end
+
+    if isfile and isfile(HIDDEN_FILE) then
+        pcall(function()
+            hiddenImage = assetFunction(HIDDEN_FILE)
+        end)
+    end
+end
+
+
+-- Download only if not already cached
+if not visibleImage then
+    visibleImage = downloadImage(VISIBLE_URL, VISIBLE_FILE)
+end
+
+if not hiddenImage then
+    hiddenImage = downloadImage(HIDDEN_URL, HIDDEN_FILE)
 end
 
 
 -- =========================================================
--- LOAD IMAGES
--- =========================================================
-
-local visibleImage = downloadImage(
-    VISIBLE_URL,
-    "ESP_VISIBLE.png"
-)
-
-local hiddenImage = downloadImage(
-    HIDDEN_URL,
-    "ESP_HIDDEN.png"
-)
-
-
--- =========================================================
--- UI ROOT
+-- GUI
 -- =========================================================
 
 local espGui = Instance.new("ScreenGui")
-
 espGui.Name = "ESPInterface"
 espGui.ResetOnSpawn = false
 espGui.IgnoreGuiInset = true
 espGui.DisplayOrder = 2147483646
 
-local success, coreGui = pcall(function()
-    return game:GetService("CoreGui")
+pcall(function()
+    espGui.Parent = CoreGui
 end)
 
-if success and coreGui then
-    espGui.Parent = coreGui
-else
+if not espGui.Parent then
     espGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
 
 -- =========================================================
--- MAIN FRAME
+-- MAIN
 -- =========================================================
 
 local main = Instance.new("Frame")
-
 main.Name = "ESPPanel"
-main.Size = UDim2.fromOffset(330, 76)
-main.Position = UDim2.fromOffset(20, 170)
 
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+main.Size = UDim2.new(0, 330, 0, 76)
+main.Position = UDim2.new(0, 20, 0, 170)
+
+main.BackgroundColor3 = Color3.fromRGB(16, 16, 16)
 main.BackgroundTransparency = 0.08
 
 main.BorderSizePixel = 0
@@ -142,15 +151,13 @@ main.Parent = espGui
 
 
 -- Rounded corners
-
 local corner = Instance.new("UICorner")
-
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = main
 
 
 -- =========================================================
--- INTERNAL FADE
+-- INTERNAL GRADIENT
 -- =========================================================
 
 local gradient = Instance.new("UIGradient")
@@ -158,9 +165,9 @@ local gradient = Instance.new("UIGradient")
 gradient.Rotation = 90
 
 gradient.Transparency = NumberSequence.new({
-    NumberSequenceKeypoint.new(0, 0.02),
-    NumberSequenceKeypoint.new(0.5, 0.08),
-    NumberSequenceKeypoint.new(1, 0.35)
+    NumberSequenceKeypoint.new(0, 0.05),
+    NumberSequenceKeypoint.new(0.55, 0.15),
+    NumberSequenceKeypoint.new(1, 0.45)
 })
 
 gradient.Parent = main
@@ -174,48 +181,9 @@ local stroke = Instance.new("UIStroke")
 
 stroke.Thickness = 1
 stroke.Transparency = 0.35
-stroke.Color = Color3.fromRGB(100, 100, 100)
+stroke.Color = Color3.fromRGB(90, 90, 90)
 
 stroke.Parent = main
-
-
--- =========================================================
--- IMAGE CONTAINER
--- =========================================================
-
-local imageContainer = Instance.new("Frame")
-
-imageContainer.Name = "ImageContainer"
-
-imageContainer.Size = UDim2.fromOffset(54, 54)
-imageContainer.Position = UDim2.fromOffset(10, 11)
-
-imageContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-imageContainer.BackgroundTransparency = 0.15
-
-imageContainer.BorderSizePixel = 0
-
-imageContainer.Parent = main
-
-
-local imageContainerCorner = Instance.new("UICorner")
-
-imageContainerCorner.CornerRadius = UDim.new(0, 10)
-imageContainerCorner.Parent = imageContainer
-
-
--- =========================================================
--- IMAGE BORDER
--- =========================================================
-
-local imageStroke = Instance.new("UIStroke")
-
-imageStroke.Name = "ImageStroke"
-imageStroke.Thickness = 1
-imageStroke.Transparency = 0.4
-imageStroke.Color = Color3.fromRGB(90, 90, 90)
-
-imageStroke.Parent = imageContainer
 
 
 -- =========================================================
@@ -226,20 +194,33 @@ local image = Instance.new("ImageLabel")
 
 image.Name = "ESPImage"
 
-image.Size = UDim2.fromScale(1, 1)
-image.Position = UDim2.fromScale(0, 0)
+image.Size = UDim2.new(0, 52, 0, 52)
+image.Position = UDim2.new(0, 12, 0.5, -26)
 
 image.BackgroundTransparency = 1
+image.BorderSizePixel = 0
 
-image.ScaleType = Enum.ScaleType.Fit
+image.ScaleType = Enum.ScaleType.Crop
 
-image.Parent = imageContainer
+image.Parent = main
 
 
 local imageCorner = Instance.new("UICorner")
-
-imageCorner.CornerRadius = UDim.new(0, 10)
+imageCorner.CornerRadius = UDim.new(0, 9)
 imageCorner.Parent = image
+
+
+-- =========================================================
+-- IMAGE INNER BORDER
+-- =========================================================
+
+local imageStroke = Instance.new("UIStroke")
+
+imageStroke.Thickness = 1
+imageStroke.Transparency = 0.45
+imageStroke.Color = Color3.fromRGB(80, 80, 80)
+
+imageStroke.Parent = image
 
 
 -- =========================================================
@@ -250,14 +231,14 @@ local title = Instance.new("TextLabel")
 
 title.Name = "Title"
 
-title.Size = UDim2.fromOffset(110, 25)
-title.Position = UDim2.fromOffset(76, 8)
+title.Size = UDim2.new(0, 100, 0, 24)
+title.Position = UDim2.new(0, 76, 0, 8)
 
 title.BackgroundTransparency = 1
 
 title.Text = "ESP"
-
 title.TextColor3 = Color3.fromRGB(245, 245, 245)
+
 title.TextSize = 17
 title.Font = Enum.Font.GothamMedium
 
@@ -274,14 +255,15 @@ local pathBox = Instance.new("TextBox")
 
 pathBox.Name = "PathBox"
 
-pathBox.Size = UDim2.new(1, -135, 0, 22)
-pathBox.Position = UDim2.new(0, 76, 0, 34)
+pathBox.Size = UDim2.new(1, -135, 0, 23)
+pathBox.Position = UDim2.new(0, 76, 1, -31)
 
 pathBox.BackgroundTransparency = 1
+pathBox.BorderSizePixel = 0
 
 pathBox.Text = ""
-pathBox.PlaceholderText = "Path..."
-pathBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 110)
+pathBox.PlaceholderText = "MoonDex path..."
+pathBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
 
 pathBox.TextColor3 = Color3.fromRGB(220, 220, 220)
 
@@ -304,7 +286,7 @@ local line = Instance.new("Frame")
 line.Name = "PathLine"
 
 line.Size = UDim2.new(1, -135, 0, 1)
-line.Position = UDim2.new(0, 76, 0, 59)
+line.Position = UDim2.new(0, 76, 1, -7)
 
 line.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 line.BackgroundTransparency = 0.35
@@ -322,139 +304,230 @@ local toggle = Instance.new("TextButton")
 
 toggle.Name = "ESPToggle"
 
-toggle.Size = UDim2.fromOffset(28, 28)
+toggle.Size = UDim2.new(0, 28, 0, 28)
 toggle.Position = UDim2.new(1, -42, 0.5, -14)
 
-toggle.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-toggle.BackgroundTransparency = 0
+toggle.BackgroundTransparency = 1
 
-toggle.BorderSizePixel = 0
+toggle.Text = "○"
 
-toggle.Text = ""
+toggle.TextColor3 = Color3.fromRGB(220, 220, 220)
+
+toggle.TextSize = 26
+toggle.Font = Enum.Font.GothamMedium
 
 toggle.AutoButtonColor = false
 
 toggle.Parent = main
 
 
-local toggleCorner = Instance.new("UICorner")
-
-toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggle
-
-
--- Toggle outline
-
-local toggleStroke = Instance.new("UIStroke")
-
-toggleStroke.Thickness = 1
-toggleStroke.Color = Color3.fromRGB(130, 130, 130)
-toggleStroke.Transparency = 0.15
-
-toggleStroke.Parent = toggle
-
-
 -- =========================================================
--- TOGGLE INNER DOT
--- =========================================================
-
-local toggleDot = Instance.new("Frame")
-
-toggleDot.Name = "Dot"
-
-toggleDot.AnchorPoint = Vector2.new(0.5, 0.5)
-toggleDot.Position = UDim2.fromScale(0.5, 0.5)
-
-toggleDot.Size = UDim2.fromOffset(0, 0)
-
-toggleDot.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-
-toggleDot.BorderSizePixel = 0
-
-toggleDot.Parent = toggle
-
-
-local dotCorner = Instance.new("UICorner")
-
-dotCorner.CornerRadius = UDim.new(1, 0)
-dotCorner.Parent = toggleDot
-
-
--- =========================================================
--- ESP SYSTEM
+-- ESP DATA
 -- =========================================================
 
 local espEnabled = false
 
-local activeHighlights = {}
-local playerConnections = {}
+local currentHighlights = {}
 
 
 -- =========================================================
--- APPLY HIGHLIGHT
+-- PATH RESOLVER
 -- =========================================================
 
-local function applyHighlight(character)
+local function resolvePath(path)
 
-    if not espEnabled then
-        return
+    if not path or path == "" then
+        return nil
     end
 
-    if not character then
-        return
+    path = path:gsub("^%s+", "")
+    path = path:gsub("%s+$", "")
+
+    -- Remove common prefixes
+    path = path:gsub("^game%.", "")
+    path = path:gsub("^Game%.", "")
+
+    local parts = {}
+
+    for part in path:gmatch("[^%.]+") do
+        table.insert(parts, part)
     end
 
-    if character:FindFirstChild("ESPHighlight") then
-        return
+    if #parts == 0 then
+        return nil
     end
 
-    local highlight = Instance.new("Highlight")
+    local first = parts[1]
 
-    highlight.Name = "ESPHighlight"
+    local current
 
-    highlight.Adornee = character
+    -- workspace
+    if first == "workspace" or first == "Workspace" then
+        current = workspace
 
-    highlight.FillColor = Color3.fromRGB(0, 200, 255)
-    highlight.FillTransparency = 0.5
+    -- CoreGui
+    elseif first == "CoreGui" then
+        current = CoreGui
 
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.OutlineTransparency = 0
+    -- Players
+    elseif first == "Players" then
+        current = Players
 
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    -- LocalPlayer
+    elseif first == "LocalPlayer" then
+        current = LocalPlayer
 
-    highlight.Parent = character
+    -- ReplicatedStorage
+    elseif first == "ReplicatedStorage" then
+        current = game:GetService("ReplicatedStorage")
 
-    table.insert(activeHighlights, highlight)
+    -- StarterGui
+    elseif first == "StarterGui" then
+        current = game:GetService("StarterGui")
+
+    -- Lighting
+    elseif first == "Lighting" then
+        current = game:GetService("Lighting")
+
+    -- Direct service
+    else
+        local serviceSuccess, service = pcall(function()
+            return game:GetService(first)
+        end)
+
+        if serviceSuccess and service then
+            current = service
+        else
+            current = game:FindFirstChild(first)
+        end
+    end
+
+    if not current then
+        return nil
+    end
+
+    for i = 2, #parts do
+
+        local childName = parts[i]
+
+        local nextObject = current:FindFirstChild(childName)
+
+        if not nextObject then
+            return nil
+        end
+
+        current = nextObject
+    end
+
+    return current
 end
 
 
 -- =========================================================
--- SETUP PLAYER
+-- CREATE HIGHLIGHT
 -- =========================================================
 
-local function setupPlayer(player)
+local function createHighlight(object)
 
-    if player == LocalPlayer then
+    if not object then
         return
     end
 
-    if player.Character then
-        applyHighlight(player.Character)
+    -- Remove old highlight from this object
+    local existing = object:FindFirstChild("ShadowESPHighlight")
+
+    if existing then
+        existing:Destroy()
     end
 
-    local connection = player.CharacterAdded:Connect(function(character)
 
-        if not espEnabled then
-            return
+    -- Model
+    if object:IsA("Model") or object:IsA("BasePart") then
+
+        local highlight = Instance.new("Highlight")
+
+        highlight.Name = "ShadowESPHighlight"
+        highlight.Adornee = object
+
+        highlight.FillColor = Color3.fromRGB(0, 200, 255)
+        highlight.FillTransparency = 0.5
+
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0
+
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+        highlight.Parent = object
+
+        table.insert(currentHighlights, highlight)
+
+        return
+    end
+
+
+    -- Folder / container
+    if object:IsA("Folder") then
+
+        for _, descendant in ipairs(object:GetDescendants()) do
+
+            if descendant:IsA("Model") then
+
+                local highlight = Instance.new("Highlight")
+
+                highlight.Name = "ShadowESPHighlight"
+                highlight.Adornee = descendant
+
+                highlight.FillColor = Color3.fromRGB(0, 200, 255)
+                highlight.FillTransparency = 0.5
+
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+                highlight.Parent = descendant
+
+                table.insert(currentHighlights, highlight)
+
+            elseif descendant:IsA("BasePart") then
+
+                local highlight = Instance.new("Highlight")
+
+                highlight.Name = "ShadowESPHighlight"
+                highlight.Adornee = descendant
+
+                highlight.FillColor = Color3.fromRGB(0, 200, 255)
+                highlight.FillTransparency = 0.5
+
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.OutlineTransparency = 0
+
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+
+                highlight.Parent = descendant
+
+                table.insert(currentHighlights, highlight)
+            end
+        end
+    end
+end
+
+
+-- =========================================================
+-- REMOVE ESP
+-- =========================================================
+
+local function removeESP()
+
+    for _, highlight in ipairs(currentHighlights) do
+
+        if highlight and highlight.Parent then
+            highlight:Destroy()
         end
 
-        task.wait(0.1)
+    end
 
-        applyHighlight(character)
-
-    end)
-
-    table.insert(playerConnections, connection)
+    table.clear(currentHighlights)
 end
 
 
@@ -464,84 +537,30 @@ end
 
 local function startESP()
 
-    -- Safety cleanup
-    for _, connection in ipairs(playerConnections) do
-        pcall(function()
-            connection:Disconnect()
-        end)
-    end
+    removeESP()
 
-    table.clear(playerConnections)
+    local path = pathBox.Text
 
-    -- Existing players
+    local target = resolvePath(path)
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        setupPlayer(player)
-    end
+    if not target then
 
-    -- New players
+        pathBox.TextColor3 = Color3.fromRGB(255, 100, 100)
 
-    local connection = Players.PlayerAdded:Connect(function(player)
+        task.delay(1.2, function()
 
-        if espEnabled then
-            setupPlayer(player)
-        end
-
-    end)
-
-    table.insert(playerConnections, connection)
-end
-
-
--- =========================================================
--- STOP ESP
--- =========================================================
-
-local function stopESP()
-
-    -- Disconnect events
-
-    for _, connection in ipairs(playerConnections) do
-
-        pcall(function()
-            connection:Disconnect()
-        end)
-
-    end
-
-    table.clear(playerConnections)
-
-
-    -- Remove tracked highlights
-
-    for _, highlight in ipairs(activeHighlights) do
-
-        if highlight and highlight.Parent then
-            highlight:Destroy()
-        end
-
-    end
-
-    table.clear(activeHighlights)
-
-
-    -- Safety cleanup
-
-    for _, player in ipairs(Players:GetPlayers()) do
-
-        if player.Character then
-
-            local highlight =
-                player.Character:FindFirstChild("ESPHighlight")
-
-            if highlight then
-                highlight:Destroy()
+            if pathBox then
+                pathBox.TextColor3 = Color3.fromRGB(220, 220, 220)
             end
 
-        end
+        end)
 
+        return false
     end
 
+    createHighlight(target)
+
+    return #currentHighlights > 0
 end
 
 
@@ -553,101 +572,127 @@ local function updateToggle()
 
     if espEnabled then
 
-        -- Image
+        toggle.Text = "●"
+
+        toggle.TextColor3 = Color3.fromRGB(0, 200, 255)
+
+        stroke.Color = Color3.fromRGB(0, 200, 255)
+        stroke.Transparency = 0.08
+
+        imageStroke.Color = Color3.fromRGB(0, 200, 255)
+        imageStroke.Transparency = 0.05
 
         if visibleImage then
             image.Image = visibleImage
         end
 
-
-        -- Main border
-
-        stroke.Color = Color3.fromRGB(0, 200, 255)
-        stroke.Transparency = 0.05
-
-
-        -- Image border
-
-        imageStroke.Color = Color3.fromRGB(0, 200, 255)
-        imageStroke.Transparency = 0
-
-
-        -- Toggle
-
-        toggleStroke.Color = Color3.fromRGB(0, 200, 255)
-        toggleStroke.Transparency = 0
-
-
-        -- Dot
-
-        toggleDot.Size = UDim2.fromOffset(16, 16)
-
-        toggleDot.BackgroundColor3 =
-            Color3.fromRGB(0, 200, 255)
-
     else
 
-        -- Image
+        toggle.Text = "○"
+
+        toggle.TextColor3 = Color3.fromRGB(220, 220, 220)
+
+        stroke.Color = Color3.fromRGB(90, 90, 90)
+        stroke.Transparency = 0.35
+
+        imageStroke.Color = Color3.fromRGB(100, 100, 100)
+        imageStroke.Transparency = 0.45
 
         if hiddenImage then
             image.Image = hiddenImage
         end
 
-
-        -- Main border
-
-        stroke.Color = Color3.fromRGB(90, 90, 90)
-        stroke.Transparency = 0.35
-
-
-        -- Image border
-
-        imageStroke.Color = Color3.fromRGB(100, 100, 100)
-        imageStroke.Transparency = 0.4
-
-
-        -- Toggle
-
-        toggleStroke.Color = Color3.fromRGB(130, 130, 130)
-        toggleStroke.Transparency = 0.15
-
-
-        -- Dot
-
-        toggleDot.Size = UDim2.fromOffset(0, 0)
-
     end
-
 end
 
 
 -- =========================================================
--- TOGGLE CLICK
+-- TOGGLE
 -- =========================================================
 
 toggle.MouseButton1Click:Connect(function()
 
-    espEnabled = not espEnabled
-
     if espEnabled then
-        startESP()
+
+        espEnabled = false
+
+        removeESP()
+
+        updateToggle()
+
     else
-        stopESP()
+
+        -- Don't enable if there is no path
+        if pathBox.Text == "" then
+
+            pathBox.PlaceholderText = "Enter a MoonDex path"
+
+            task.delay(1.5, function()
+
+                if pathBox then
+                    pathBox.PlaceholderText = "MoonDex path..."
+                end
+
+            end)
+
+            return
+        end
+
+        local success = startESP()
+
+        if success then
+
+            espEnabled = true
+            updateToggle()
+
+        else
+
+            espEnabled = false
+            updateToggle()
+
+        end
     end
-
-    updateToggle()
-
 end)
 
 
 -- =========================================================
--- MOBILE + PC DRAG
+-- PATH CHANGED WHILE ESP IS ACTIVE
 -- =========================================================
 
-local dragging = false
+pathBox.FocusLost:Connect(function()
 
+    if espEnabled then
+
+        local success = startESP()
+
+        if not success then
+            espEnabled = false
+            updateToggle()
+        end
+
+    end
+end)
+
+
+-- =========================================================
+-- DRAG SYSTEM
+-- =========================================================
+-- Drag only from image/title/background.
+-- The textbox and toggle remain clickable.
+
+local dragging = false
 local dragStart
 local startPosition
+
+
+local function beginDrag(input)
+
+    dragging = true
+
+    dragStart = input.Position
+    startPosition = main.Position
+
+end
 
 
 local function updateDrag(input)
@@ -656,67 +701,51 @@ local function updateDrag(input)
         return
     end
 
-    local delta =
-        input.Position - dragStart
+    local delta = input.Position - dragStart
 
     main.Position = UDim2.new(
         startPosition.X.Scale,
         startPosition.X.Offset + delta.X,
-
         startPosition.Y.Scale,
         startPosition.Y.Offset + delta.Y
     )
+end
+
+
+local function endDrag()
+
+    dragging = false
 
 end
 
 
--- Start dragging only when clicking the panel,
--- NOT the toggle or textbox.
+-- Image can be used as drag handle
+image.InputBegan:Connect(function(input)
 
-main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
 
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1
-    and input.UserInputType ~= Enum.UserInputType.Touch then
-        return
+        beginDrag(input)
+
     end
 
-    -- Don't start dragging from toggle
+end)
 
-    if input.Target == toggle
-    or input.Target == toggleDot then
-        return
+
+-- Title can be used as drag handle
+title.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        beginDrag(input)
+
     end
-
-    -- Don't start dragging while editing textbox
-
-    if input.Target == pathBox then
-        return
-    end
-
-
-    dragging = true
-
-    dragStart = input.Position
-
-    startPosition = main.Position
-
-
-    input.Changed:Connect(function()
-
-        if input.UserInputState == Enum.UserInputState.End then
-            dragging = false
-        end
-
-    end)
 
 end)
 
 
 UserInputService.InputChanged:Connect(function(input)
-
-    if not dragging then
-        return
-    end
 
     if input.UserInputType == Enum.UserInputType.MouseMovement
     or input.UserInputType == Enum.UserInputType.Touch then
@@ -728,17 +757,24 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 
+UserInputService.InputEnded:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+
+        endDrag()
+
+    end
+
+end)
+
+
 -- =========================================================
 -- INITIAL STATE
 -- =========================================================
 
-espEnabled = false
+if hiddenImage then
+    image.Image = hiddenImage
+end
 
 updateToggle()
-
-
--- =========================================================
--- DONE
--- =========================================================
-
-print("[Arceus X ESP] Interface loaded")
