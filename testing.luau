@@ -1,16 +1,18 @@
 -- =========================================================
 -- SHDW_FBL_8K4P
 -- ARCEUS X DRAG + FULLBRIGHT
--- ISOLATED UI | PC + MOBILE
+-- STABLE VERSION | PC + MOBILE
 -- =========================================================
 
-local Players_8K4P = game:GetService("Players")
+local Players_8K4P =
+    game:GetService("Players")
+
 local UserInputService_8K4P =
     game:GetService("UserInputService")
+
 local ContentProvider_8K4P =
     game:GetService("ContentProvider")
-local TweenService_8K4P =
-    game:GetService("TweenService")
+
 local Lighting_8K4P =
     game:GetService("Lighting")
 
@@ -33,20 +35,31 @@ local ASSET_FOLDER_8K4P =
 local GUI_NAME_8K4P =
     "SHDW_FBL_Controller_8K4P"
 
-local UI_WIDTH_8K4P = 112
+-- =========================================================
+-- UI DIMENSIONS
+-- =========================================================
+
+local ARCEUS_WIDTH_8K4P = 54
+local FULLBRIGHT_WIDTH_8K4P = 58
+
+-- They are directly attached.
+local UI_WIDTH_8K4P =
+    ARCEUS_WIDTH_8K4P
+    + FULLBRIGHT_WIDTH_8K4P
+
 local UI_HEIGHT_8K4P = 54
 
-local ARCEUS_SIZE_8K4P = 54
-local STAR_AREA_SIZE_8K4P = 58
+local STAR_SIZE_8K4P = 28
 
 local EDGE_PADDING_8K4P = 10
+
 local DRAG_THRESHOLD_8K4P = 8
 
 local START_X_8K4P = 20
 local START_Y_8K4P = 100
 
 -- =========================================================
--- ASSET API
+-- ASSET FUNCTIONS
 -- =========================================================
 
 local httpRequest_8K4P =
@@ -58,103 +71,135 @@ local getAsset_8K4P =
     getcustomasset
     or getsynasset
 
--- =========================================================
--- DOWNLOAD IMAGE
--- =========================================================
-
 local function downloadImage_8K4P(
     url,
     fileName
 )
 
-    if not isfolder(ASSET_FOLDER_8K4P) then
+    -- -----------------------------------------------------
+    -- CREATE FOLDER
+    -- -----------------------------------------------------
 
-        pcall(function()
+    pcall(function()
+
+        if not isfolder(
+            ASSET_FOLDER_8K4P
+        ) then
 
             makefolder(
                 ASSET_FOLDER_8K4P
             )
 
-        end)
+        end
 
-    end
+    end)
 
-    local path =
+    local path_8K4P =
         ASSET_FOLDER_8K4P
         .. "/"
         .. fileName
 
     -- -----------------------------------------------------
-    -- CACHE
+    -- LOAD FROM CACHE
     -- -----------------------------------------------------
 
-    if isfile(path)
-        and getAsset_8K4P then
+    if
+        isfile(path_8K4P)
+        and getAsset_8K4P
+    then
 
-        local success, asset =
+        local success_8K4P,
+            asset_8K4P =
             pcall(function()
 
-                return getAsset_8K4P(path)
+                return getAsset_8K4P(
+                    path_8K4P
+                )
 
             end)
 
-        if success and asset then
-            return asset
+        if
+            success_8K4P
+            and asset_8K4P
+        then
+
+            return asset_8K4P
+
         end
 
     end
 
     -- -----------------------------------------------------
-    -- REQUEST
+    -- HTTP REQUEST
     -- -----------------------------------------------------
 
-    local body
+    local body_8K4P = nil
 
     if httpRequest_8K4P then
 
-        local success, response =
+        local success_8K4P,
+            response_8K4P =
             pcall(function()
 
                 return httpRequest_8K4P({
+
                     Url = url,
+
                     Method = "GET"
+
                 })
 
             end)
 
-        if success
-            and response
-            and response.Body then
+        if
+            success_8K4P
+            and response_8K4P
+            and response_8K4P.Body
+        then
 
-            body = response.Body
+            body_8K4P =
+                response_8K4P.Body
 
         end
 
     end
 
     -- -----------------------------------------------------
-    -- FALLBACK
+    -- GAME HTTP FALLBACK
     -- -----------------------------------------------------
 
-    if not body then
+    if not body_8K4P then
 
-        local success, result =
+        local success_8K4P,
+            result_8K4P =
             pcall(function()
 
-                return game:HttpGet(url)
+                return game:HttpGet(
+                    url
+                )
 
             end)
 
-        if success and result then
-            body = result
+        if
+            success_8K4P
+            and result_8K4P
+        then
+
+            body_8K4P =
+                result_8K4P
+
         end
 
     end
 
-    if not body then
+    -- -----------------------------------------------------
+    -- DOWNLOAD FAILED
+    -- -----------------------------------------------------
+
+    if not body_8K4P then
 
         warn(
-            "[SHDW_FBL_8K4P] Image download failed."
+            "[SHDW_FBL_8K4P] Failed to download image."
         )
 
         return nil
@@ -162,23 +207,23 @@ local function downloadImage_8K4P(
     end
 
     -- -----------------------------------------------------
-    -- WRITE
+    -- SAVE IMAGE
     -- -----------------------------------------------------
 
-    local writeSuccess =
+    local writeSuccess_8K4P =
         pcall(function()
 
             writefile(
-                path,
-                body
+                path_8K4P,
+                body_8K4P
             )
 
         end)
 
-    if not writeSuccess then
+    if not writeSuccess_8K4P then
 
         warn(
-            "[SHDW_FBL_8K4P] File write failed."
+            "[SHDW_FBL_8K4P] Failed to save image."
         )
 
         return nil
@@ -186,20 +231,28 @@ local function downloadImage_8K4P(
     end
 
     -- -----------------------------------------------------
-    -- ASSET
+    -- CONVERT TO ROBLOX ASSET
     -- -----------------------------------------------------
 
     if getAsset_8K4P then
 
-        local success, asset =
+        local success_8K4P,
+            asset_8K4P =
             pcall(function()
 
-                return getAsset_8K4P(path)
+                return getAsset_8K4P(
+                    path_8K4P
+                )
 
             end)
 
-        if success and asset then
-            return asset
+        if
+            success_8K4P
+            and asset_8K4P
+        then
+
+            return asset_8K4P
+
         end
 
     end
@@ -209,7 +262,7 @@ local function downloadImage_8K4P(
 end
 
 -- =========================================================
--- LOAD ASSETS
+-- LOAD ARCEUS IMAGES
 -- =========================================================
 
 local visibleAsset_8K4P =
@@ -225,10 +278,10 @@ local hiddenAsset_8K4P =
     )
 
 -- =========================================================
--- FIND UI PARENT
+-- GUI PARENT
 -- =========================================================
 
-local targetParent_8K4P
+local targetParent_8K4P = nil
 
 pcall(function()
 
@@ -244,27 +297,31 @@ end)
 if not targetParent_8K4P then
 
     targetParent_8K4P =
-        game:GetService("CoreGui")
+        game:GetService(
+            "CoreGui"
+        )
 
 end
 
 if not targetParent_8K4P then
 
     targetParent_8K4P =
-        LocalPlayer_8K4P:WaitForChild(
+        LocalPlayer_8K4P:
+        WaitForChild(
             "PlayerGui"
         )
 
 end
 
 -- =========================================================
--- REMOVE ONLY OUR OWN GUI
+-- REMOVE ONLY THIS SCRIPT'S OLD GUI
 -- =========================================================
 
 pcall(function()
 
     local oldGui_8K4P =
-        targetParent_8K4P:FindFirstChild(
+        targetParent_8K4P:
+        FindFirstChild(
             GUI_NAME_8K4P
         )
 
@@ -277,12 +334,12 @@ pcall(function()
 end)
 
 -- =========================================================
--- ARCEUS GUI FINDER
+-- FIND ARCEUS X GUI
 -- =========================================================
 
 local function findArceusX_8K4P()
 
-    local parents_8K4P = {
+    local possibleParents_8K4P = {
 
         targetParent_8K4P,
 
@@ -291,20 +348,24 @@ local function findArceusX_8K4P()
         ),
 
         LocalPlayer_8K4P:
-            FindFirstChildOfClass(
-                "PlayerGui"
-            )
+        FindFirstChildOfClass(
+            "PlayerGui"
+        )
 
     }
 
-    for _, parent_8K4P in
-        ipairs(parents_8K4P)
+    for _,
+        parent_8K4P
+        in ipairs(
+            possibleParents_8K4P
+        )
     do
 
         if parent_8K4P then
 
-            for _, child_8K4P in
-                ipairs(
+            for _,
+                child_8K4P
+                in ipairs(
                     parent_8K4P:GetChildren()
                 )
             do
@@ -313,30 +374,30 @@ local function findArceusX_8K4P()
                     "ScreenGui"
                 ) then
 
-                    local lowerName_8K4P =
+                    local name_8K4P =
                         string.lower(
                             child_8K4P.Name
                         )
 
                     if
-                        lowerName_8K4P ==
+                        name_8K4P ==
                             "arceusx"
                         or
-                        lowerName_8K4P ==
+                        name_8K4P ==
                             "arceus x"
                         or
-                        lowerName_8K4P ==
+                        name_8K4P ==
                             "arceus"
                         or
                         string.find(
-                            lowerName_8K4P,
+                            name_8K4P,
                             "arceusx",
                             1,
                             true
                         )
                         or
                         string.find(
-                            lowerName_8K4P,
+                            name_8K4P,
                             "arceus x",
                             1,
                             true
@@ -364,7 +425,9 @@ end
 -- =========================================================
 
 local shadowGui_8K4P =
-    Instance.new("ScreenGui")
+    Instance.new(
+        "ScreenGui"
+    )
 
 shadowGui_8K4P.Name =
     GUI_NAME_8K4P
@@ -416,15 +479,19 @@ shadow_8K4P.BackgroundColor3 =
 shadow_8K4P.BackgroundTransparency =
     0.42
 
-shadow_8K4P.BorderSizePixel = 0
+shadow_8K4P.BorderSizePixel =
+    0
 
-shadow_8K4P.ZIndex = 1
+shadow_8K4P.ZIndex =
+    1
 
 shadow_8K4P.Parent =
     shadowGui_8K4P
 
 local shadowCorner_8K4P =
-    Instance.new("UICorner")
+    Instance.new(
+        "UICorner"
+    )
 
 shadowCorner_8K4P.CornerRadius =
     UDim.new(
@@ -464,15 +531,19 @@ panel_8K4P.BackgroundColor3 =
         16
     )
 
-panel_8K4P.BorderSizePixel = 0
+panel_8K4P.BorderSizePixel =
+    0
 
-panel_8K4P.ZIndex = 5
+panel_8K4P.ZIndex =
+    5
 
 panel_8K4P.Parent =
     shadowGui_8K4P
 
 local panelCorner_8K4P =
-    Instance.new("UICorner")
+    Instance.new(
+        "UICorner"
+    )
 
 panelCorner_8K4P.CornerRadius =
     UDim.new(
@@ -484,11 +555,13 @@ panelCorner_8K4P.Parent =
     panel_8K4P
 
 -- =========================================================
--- GRADIENT
+-- DARK GRADIENT
 -- =========================================================
 
 local panelGradient_8K4P =
-    Instance.new("UIGradient")
+    Instance.new(
+        "UIGradient"
+    )
 
 panelGradient_8K4P.Name =
     "SHDW_FBL_Gradient_8K4P"
@@ -525,17 +598,20 @@ panelGradient_8K4P.Color =
 
     })
 
-panelGradient_8K4P.Rotation = 0
+panelGradient_8K4P.Rotation =
+    0
 
 panelGradient_8K4P.Parent =
     panel_8K4P
 
 -- =========================================================
--- PANEL BORDER
+-- OUTER BORDER
 -- =========================================================
 
 local panelBorder_8K4P =
-    Instance.new("UIStroke")
+    Instance.new(
+        "UIStroke"
+    )
 
 panelBorder_8K4P.Name =
     "SHDW_FBL_Border_8K4P"
@@ -543,7 +619,8 @@ panelBorder_8K4P.Name =
 panelBorder_8K4P.ApplyStrokeMode =
     Enum.ApplyStrokeMode.Border
 
-panelBorder_8K4P.Thickness = 2
+panelBorder_8K4P.Thickness =
+    2
 
 panelBorder_8K4P.Color =
     Color3.fromRGB(
@@ -556,11 +633,13 @@ panelBorder_8K4P.Parent =
     panel_8K4P
 
 -- =========================================================
--- PANEL GLOW
+-- OUTER GLOW
 -- =========================================================
 
 local panelGlow_8K4P =
-    Instance.new("UIStroke")
+    Instance.new(
+        "UIStroke"
+    )
 
 panelGlow_8K4P.Name =
     "SHDW_FBL_Glow_8K4P"
@@ -568,7 +647,8 @@ panelGlow_8K4P.Name =
 panelGlow_8K4P.ApplyStrokeMode =
     Enum.ApplyStrokeMode.Border
 
-panelGlow_8K4P.Thickness = 5
+panelGlow_8K4P.Thickness =
+    5
 
 panelGlow_8K4P.Transparency =
     0.72
@@ -584,31 +664,22 @@ panelGlow_8K4P.Parent =
     panel_8K4P
 
 -- =========================================================
--- SCALE
--- =========================================================
-
-local panelScale_8K4P =
-    Instance.new("UIScale")
-
-panelScale_8K4P.Scale = 1
-
-panelScale_8K4P.Parent =
-    panel_8K4P
-
--- =========================================================
 -- ARCEUS DRAG AREA
+-- ONLY THIS AREA CAN MOVE THE UI
 -- =========================================================
 
 local arceusDrag_8K4P =
-    Instance.new("ImageButton")
+    Instance.new(
+        "ImageButton"
+    )
 
 arceusDrag_8K4P.Name =
     "SHDW_FBL_ArceusDrag_8K4P"
 
 arceusDrag_8K4P.Size =
     UDim2.fromOffset(
-        ARCEUS_SIZE_8K4P,
-        ARCEUS_SIZE_8K4P
+        ARCEUS_WIDTH_8K4P,
+        UI_HEIGHT_8K4P
     )
 
 arceusDrag_8K4P.Position =
@@ -620,24 +691,29 @@ arceusDrag_8K4P.Position =
 arceusDrag_8K4P.BackgroundTransparency =
     1
 
-arceusDrag_8K4P.Image = ""
+arceusDrag_8K4P.Image =
+    ""
 
 arceusDrag_8K4P.AutoButtonColor =
     false
 
-arceusDrag_8K4P.Active = true
+arceusDrag_8K4P.Active =
+    true
 
-arceusDrag_8K4P.ZIndex = 10
+arceusDrag_8K4P.ZIndex =
+    10
 
 arceusDrag_8K4P.Parent =
     panel_8K4P
 
 -- =========================================================
--- IMAGE CONTAINER
+-- ARCEUS IMAGE CONTAINER
 -- =========================================================
 
 local imageContainer_8K4P =
-    Instance.new("Frame")
+    Instance.new(
+        "Frame"
+    )
 
 imageContainer_8K4P.Name =
     "SHDW_FBL_ImageContainer_8K4P"
@@ -663,13 +739,16 @@ imageContainer_8K4P.Size =
 imageContainer_8K4P.BackgroundTransparency =
     1
 
-imageContainer_8K4P.ZIndex = 11
+imageContainer_8K4P.ZIndex =
+    11
 
 imageContainer_8K4P.Parent =
     arceusDrag_8K4P
 
 local imageCorner_8K4P =
-    Instance.new("UICorner")
+    Instance.new(
+        "UICorner"
+    )
 
 imageCorner_8K4P.CornerRadius =
     UDim.new(
@@ -681,11 +760,13 @@ imageCorner_8K4P.Parent =
     imageContainer_8K4P
 
 -- =========================================================
--- VISIBLE IMAGE
+-- VISIBLE ARCEUS IMAGE
 -- =========================================================
 
 local visibleImage_8K4P =
-    Instance.new("ImageLabel")
+    Instance.new(
+        "ImageLabel"
+    )
 
 visibleImage_8K4P.Name =
     "SHDW_FBL_VisibleImage_8K4P"
@@ -711,13 +792,16 @@ visibleImage_8K4P.Visible =
 visibleImage_8K4P.Active =
     false
 
-visibleImage_8K4P.ZIndex = 12
+visibleImage_8K4P.ZIndex =
+    12
 
 visibleImage_8K4P.Parent =
     imageContainer_8K4P
 
 local visibleCorner_8K4P =
-    Instance.new("UICorner")
+    Instance.new(
+        "UICorner"
+    )
 
 visibleCorner_8K4P.CornerRadius =
     UDim.new(
@@ -729,11 +813,13 @@ visibleCorner_8K4P.Parent =
     visibleImage_8K4P
 
 -- =========================================================
--- HIDDEN IMAGE
+-- HIDDEN ARCEUS IMAGE
 -- =========================================================
 
 local hiddenImage_8K4P =
-    Instance.new("ImageLabel")
+    Instance.new(
+        "ImageLabel"
+    )
 
 hiddenImage_8K4P.Name =
     "SHDW_FBL_HiddenImage_8K4P"
@@ -753,18 +839,22 @@ hiddenImage_8K4P.Image =
 hiddenImage_8K4P.ScaleType =
     Enum.ScaleType.Fit
 
-hiddenImage_8K4P.Visible = false
+hiddenImage_8K4P.Visible =
+    false
 
 hiddenImage_8K4P.Active =
     false
 
-hiddenImage_8K4P.ZIndex = 12
+hiddenImage_8K4P.ZIndex =
+    12
 
 hiddenImage_8K4P.Parent =
     imageContainer_8K4P
 
 local hiddenCorner_8K4P =
-    Instance.new("UICorner")
+    Instance.new(
+        "UICorner"
+    )
 
 hiddenCorner_8K4P.CornerRadius =
     UDim.new(
@@ -780,7 +870,9 @@ hiddenCorner_8K4P.Parent =
 -- =========================================================
 
 local separator_8K4P =
-    Instance.new("Frame")
+    Instance.new(
+        "Frame"
+    )
 
 separator_8K4P.Name =
     "SHDW_FBL_Separator_8K4P"
@@ -793,7 +885,7 @@ separator_8K4P.Size =
 
 separator_8K4P.Position =
     UDim2.fromOffset(
-        ARCEUS_SIZE_8K4P,
+        ARCEUS_WIDTH_8K4P,
         13
     )
 
@@ -807,9 +899,11 @@ separator_8K4P.BackgroundColor3 =
 separator_8K4P.BackgroundTransparency =
     0.35
 
-separator_8K4P.BorderSizePixel = 0
+separator_8K4P.BorderSizePixel =
+    0
 
-separator_8K4P.ZIndex = 11
+separator_8K4P.ZIndex =
+    13
 
 separator_8K4P.Parent =
     panel_8K4P
@@ -819,34 +913,39 @@ separator_8K4P.Parent =
 -- =========================================================
 
 local starButton_8K4P =
-    Instance.new("ImageButton")
+    Instance.new(
+        "ImageButton"
+    )
 
 starButton_8K4P.Name =
-    "SHDW_FBL_StarButton_8K4P"
+    "SHDW_FBL_Fullbright_8K4P"
 
 starButton_8K4P.Size =
     UDim2.fromOffset(
-        STAR_AREA_SIZE_8K4P,
+        FULLBRIGHT_WIDTH_8K4P,
         UI_HEIGHT_8K4P
     )
 
 starButton_8K4P.Position =
     UDim2.fromOffset(
-        ARCEUS_SIZE_8K4P + 1,
+        ARCEUS_WIDTH_8K4P,
         0
     )
 
 starButton_8K4P.BackgroundTransparency =
     1
 
-starButton_8K4P.Image = ""
+starButton_8K4P.Image =
+    ""
 
 starButton_8K4P.AutoButtonColor =
     false
 
-starButton_8K4P.Active = true
+starButton_8K4P.Active =
+    true
 
-starButton_8K4P.ZIndex = 10
+starButton_8K4P.ZIndex =
+    14
 
 starButton_8K4P.Parent =
     panel_8K4P
@@ -856,7 +955,9 @@ starButton_8K4P.Parent =
 -- =========================================================
 
 local star_8K4P =
-    Instance.new("TextLabel")
+    Instance.new(
+        "TextLabel"
+    )
 
 star_8K4P.Name =
     "SHDW_FBL_Star_8K4P"
@@ -875,8 +976,8 @@ star_8K4P.Position =
 
 star_8K4P.Size =
     UDim2.fromOffset(
-        28,
-        28
+        STAR_SIZE_8K4P,
+        STAR_SIZE_8K4P
     )
 
 star_8K4P.BackgroundTransparency =
@@ -885,7 +986,8 @@ star_8K4P.BackgroundTransparency =
 star_8K4P.Text =
     "☆"
 
-star_8K4P.TextScaled = true
+star_8K4P.TextScaled =
+    true
 
 star_8K4P.Font =
     Enum.Font.GothamBold
@@ -897,49 +999,46 @@ star_8K4P.TextColor3 =
         240
     )
 
-star_8K4P.Active = false
+star_8K4P.TextStrokeTransparency =
+    0.85
 
-star_8K4P.ZIndex = 11
+star_8K4P.Active =
+    false
+
+star_8K4P.ZIndex =
+    15
 
 star_8K4P.Parent =
     starButton_8K4P
 
 -- =========================================================
--- STAR GLOW
+-- STAR NEON
+-- NO TWEEN / NO PULSE
 -- =========================================================
 
 local starGlow_8K4P =
-    Instance.new("UIStroke")
+    Instance.new(
+        "UIStroke"
+    )
 
 starGlow_8K4P.Name =
-    "SHDW_FBL_StarGlow_8K4P"
+    "SHDW_FBL_StarNeon_8K4P"
 
 starGlow_8K4P.Thickness =
-    1.5
+    2
 
 starGlow_8K4P.Color =
     Color3.fromRGB(
         0,
-        225,
+        220,
         255
     )
 
-starGlow_8K4P.Transparency = 1
+starGlow_8K4P.Transparency =
+    1
 
 starGlow_8K4P.Parent =
     star_8K4P
-
--- =========================================================
--- STAR SCALE
--- =========================================================
-
-local starScale_8K4P =
-    Instance.new("UIScale")
-
-starScale_8K4P.Scale = 1
-
-starScale_8K4P.Parent =
-    starButton_8K4P
 
 -- =========================================================
 -- PRELOAD
@@ -961,7 +1060,7 @@ task.spawn(function()
 end)
 
 -- =========================================================
--- STATE
+-- STATES
 -- =========================================================
 
 local fullbrightEnabled_8K4P =
@@ -1010,7 +1109,7 @@ local originalLighting_8K4P = {
 }
 
 -- =========================================================
--- SAVE LIGHTING
+-- SAVE ORIGINAL LIGHTING
 -- =========================================================
 
 local function saveLighting_8K4P()
@@ -1145,6 +1244,7 @@ local function updateStarAppearance_8K4P()
 
     if fullbrightEnabled_8K4P then
 
+        -- FILLED STAR
         star_8K4P.Text =
             "★"
 
@@ -1155,10 +1255,21 @@ local function updateStarAppearance_8K4P()
                 255
             )
 
+        star_8K4P.TextStrokeColor3 =
+            Color3.fromRGB(
+                0,
+                220,
+                255
+            )
+
+        star_8K4P.TextStrokeTransparency =
+            0.15
+
+        -- NEON ON
         starGlow_8K4P.Color =
             Color3.fromRGB(
                 0,
-                225,
+                220,
                 255
             )
 
@@ -1167,6 +1278,7 @@ local function updateStarAppearance_8K4P()
 
     else
 
+        -- EMPTY STAR
         star_8K4P.Text =
             "☆"
 
@@ -1177,6 +1289,17 @@ local function updateStarAppearance_8K4P()
                 240
             )
 
+        star_8K4P.TextStrokeColor3 =
+            Color3.fromRGB(
+                20,
+                20,
+                25
+            )
+
+        star_8K4P.TextStrokeTransparency =
+            0.75
+
+        -- NEON OFF
         starGlow_8K4P.Transparency =
             1
 
@@ -1185,186 +1308,7 @@ local function updateStarAppearance_8K4P()
 end
 
 -- =========================================================
--- SAFE STAR CLICK ANIMATION
--- =========================================================
-
-local starTween_8K4P
-
-local function animateStar_8K4P()
-
-    if starTween_8K4P then
-
-        pcall(function()
-
-            starTween_8K4P:Cancel()
-
-        end)
-
-    end
-
-    starScale_8K4P.Scale =
-        0.86
-
-    starTween_8K4P =
-        TweenService_8K4P:Create(
-
-            starScale_8K4P,
-
-            TweenInfo.new(
-                0.14,
-                Enum.EasingStyle.Back,
-                Enum.EasingDirection.Out
-            ),
-
-            {
-                Scale = 1
-            }
-
-        )
-
-    starTween_8K4P:Play()
-
-end
-
--- =========================================================
--- MAIN GLOW PULSE
--- =========================================================
-
-task.spawn(function()
-
-    while shadowGui_8K4P.Parent do
-
-        if not arceusHidden_8K4P then
-
-            local tweenIn_8K4P =
-                TweenService_8K4P:Create(
-
-                    panelGlow_8K4P,
-
-                    TweenInfo.new(
-                        1.1,
-                        Enum.EasingStyle.Sine,
-                        Enum.EasingDirection.InOut
-                    ),
-
-                    {
-                        Transparency =
-                            0.52
-                    }
-
-                )
-
-            local tweenOut_8K4P =
-                TweenService_8K4P:Create(
-
-                    panelGlow_8K4P,
-
-                    TweenInfo.new(
-                        1.1,
-                        Enum.EasingStyle.Sine,
-                        Enum.EasingDirection.InOut
-                    ),
-
-                    {
-                        Transparency =
-                            0.78
-                    }
-
-                )
-
-            tweenIn_8K4P:Play()
-
-            tweenIn_8K4P.Completed:Wait()
-
-            if arceusHidden_8K4P then
-                continue
-            end
-
-            tweenOut_8K4P:Play()
-
-            tweenOut_8K4P.Completed:Wait()
-
-        else
-
-            task.wait(0.25)
-
-        end
-
-    end
-
-end)
-
--- =========================================================
--- STAR NEON PULSE
--- =========================================================
-
-task.spawn(function()
-
-    while shadowGui_8K4P.Parent do
-
-        if fullbrightEnabled_8K4P then
-
-            local tweenIn_8K4P =
-                TweenService_8K4P:Create(
-
-                    starGlow_8K4P,
-
-                    TweenInfo.new(
-                        0.75,
-                        Enum.EasingStyle.Sine,
-                        Enum.EasingDirection.InOut
-                    ),
-
-                    {
-                        Transparency =
-                            0.02
-                    }
-
-                )
-
-            local tweenOut_8K4P =
-                TweenService_8K4P:Create(
-
-                    starGlow_8K4P,
-
-                    TweenInfo.new(
-                        0.75,
-                        Enum.EasingStyle.Sine,
-                        Enum.EasingDirection.InOut
-                    ),
-
-                    {
-                        Transparency =
-                            0.42
-                    }
-
-                )
-
-            tweenIn_8K4P:Play()
-
-            tweenIn_8K4P.Completed:Wait()
-
-            if not fullbrightEnabled_8K4P then
-                continue
-            end
-
-            tweenOut_8K4P:Play()
-
-            tweenOut_8K4P.Completed:Wait()
-
-        else
-
-            task.wait(0.20)
-
-        end
-
-    end
-
-end)
-
--- =========================================================
--- DRAG START
--- ONLY ARCEUS IMAGE
+-- ARCEUS DRAG START
 -- =========================================================
 
 arceusDrag_8K4P.InputBegan:Connect(
@@ -1424,9 +1368,7 @@ UserInputService_8K4P.InputChanged:Connect(
 
         movedDistance_8K4P =
             math.max(
-
                 movedDistance_8K4P,
-
                 math.abs(
                     delta_8K4P.X
                 )
@@ -1434,14 +1376,13 @@ UserInputService_8K4P.InputChanged:Connect(
                 math.abs(
                     delta_8K4P.Y
                 )
-
             )
 
-        local x_8K4P =
+        local newX_8K4P =
             startPosition_8K4P.X.Offset
             + delta_8K4P.X
 
-        local y_8K4P =
+        local newY_8K4P =
             startPosition_8K4P.Y.Offset
             + delta_8K4P.Y
 
@@ -1465,30 +1406,30 @@ UserInputService_8K4P.InputChanged:Connect(
             - UI_HEIGHT_8K4P
             - EDGE_PADDING_8K4P
 
-        x_8K4P =
+        newX_8K4P =
             math.clamp(
-                x_8K4P,
+                newX_8K4P,
                 EDGE_PADDING_8K4P,
                 maxX_8K4P
             )
 
-        y_8K4P =
+        newY_8K4P =
             math.clamp(
-                y_8K4P,
+                newY_8K4P,
                 EDGE_PADDING_8K4P,
                 maxY_8K4P
             )
 
         panel_8K4P.Position =
             UDim2.fromOffset(
-                x_8K4P,
-                y_8K4P
+                newX_8K4P,
+                newY_8K4P
             )
 
         shadow_8K4P.Position =
             UDim2.fromOffset(
-                x_8K4P + 3,
-                y_8K4P + 3
+                newX_8K4P + 3,
+                newY_8K4P + 3
             )
 
     end
@@ -1520,9 +1461,6 @@ UserInputService_8K4P.InputEnded:Connect(
         dragging_8K4P =
             false
 
-        -- Arceus image is ONLY drag.
-        -- No click action here.
-
     end
 )
 
@@ -1548,8 +1486,6 @@ starButton_8K4P.Activated:Connect(
 
         updateStarAppearance_8K4P()
 
-        animateStar_8K4P()
-
     end
 )
 
@@ -1562,21 +1498,11 @@ if not UserInputService_8K4P.TouchEnabled then
     arceusDrag_8K4P.MouseEnter:Connect(
         function()
 
-            TweenService_8K4P:Create(
+            panelBorder_8K4P.Thickness =
+                2
 
-                panelScale_8K4P,
-
-                TweenInfo.new(
-                    0.15,
-                    Enum.EasingStyle.Quad,
-                    Enum.EasingDirection.Out
-                ),
-
-                {
-                    Scale = 1.04
-                }
-
-            ):Play()
+            panelGlow_8K4P.Thickness =
+                6
 
         end
     )
@@ -1584,25 +1510,8 @@ if not UserInputService_8K4P.TouchEnabled then
     arceusDrag_8K4P.MouseLeave:Connect(
         function()
 
-            if not dragging_8K4P then
-
-                TweenService_8K4P:Create(
-
-                    panelScale_8K4P,
-
-                    TweenInfo.new(
-                        0.15,
-                        Enum.EasingStyle.Quad,
-                        Enum.EasingDirection.Out
-                    ),
-
-                    {
-                        Scale = 1
-                    }
-
-                ):Play()
-
-            end
+            panelGlow_8K4P.Thickness =
+                5
 
         end
     )
@@ -1693,5 +1602,5 @@ updateArceusAppearance_8K4P()
 updateStarAppearance_8K4P()
 
 print(
-    "[SHDW_FBL_8K4P] Loaded successfully."
+    "[SHDW_FBL_8K4P] Stable version loaded."
 )
