@@ -1,6 +1,7 @@
 -- =========================================================
--- SHADOW VISIBILITY + FULLBRIGHT TOGGLE
--- PREMIUM UI | PC + MOBILE
+-- SHADOW TOGGLE
+-- ARCEUS X + FULLBRIGHT
+-- PREMIUM RECTANGULAR UI | PC + MOBILE
 -- =========================================================
 
 local Players = game:GetService("Players")
@@ -21,16 +22,23 @@ local VISIBLE_URL =
 local HIDDEN_URL =
     "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4701.png"
 
-local FOLDER = "ArceusXUIToggle"
+local ASSET_FOLDER = "ShadowToggle"
 
-local BUTTON_SIZE = 54
-local FULLBRIGHT_SIZE = 46
+-- ---------------------------------------------------------
+-- UI SIZE
+-- ---------------------------------------------------------
+
+local UI_WIDTH = 112
+local UI_HEIGHT = 54
+
+local ARCEUS_SIZE = 54
+local STAR_AREA_SIZE = 46
 
 local EDGE_PADDING = 10
 local DRAG_THRESHOLD = 8
 
-local MAIN_X = 20
-local MAIN_Y = 100
+local START_X = 20
+local START_Y = 100
 
 -- =========================================================
 -- HTTP / ASSET FUNCTIONS
@@ -47,14 +55,20 @@ local getAsset =
 
 local function downloadImage(url, fileName)
 
-    if not isfolder(FOLDER) then
+    -- -----------------------------------------------------
+    -- Folder
+    -- -----------------------------------------------------
+
+    if not isfolder(ASSET_FOLDER) then
+
         pcall(function()
-            makefolder(FOLDER)
+            makefolder(ASSET_FOLDER)
         end)
+
     end
 
     local path =
-        FOLDER .. "/" .. fileName
+        ASSET_FOLDER .. "/" .. fileName
 
     -- -----------------------------------------------------
     -- Cached asset
@@ -64,7 +78,9 @@ local function downloadImage(url, fileName)
 
         local success, asset =
             pcall(function()
+
                 return getAsset(path)
+
             end)
 
         if success and asset then
@@ -109,7 +125,9 @@ local function downloadImage(url, fileName)
 
         local success, result =
             pcall(function()
+
                 return game:HttpGet(url)
+
             end)
 
         if success and result then
@@ -118,10 +136,14 @@ local function downloadImage(url, fileName)
 
     end
 
+    -- -----------------------------------------------------
+    -- Failed
+    -- -----------------------------------------------------
+
     if not body then
 
         warn(
-            "[Shadow Toggle] Image download failed:",
+            "[ShadowToggle] Could not download:",
             url
         )
 
@@ -130,7 +152,7 @@ local function downloadImage(url, fileName)
     end
 
     -- -----------------------------------------------------
-    -- Write
+    -- Write file
     -- -----------------------------------------------------
 
     local writeSuccess =
@@ -146,7 +168,7 @@ local function downloadImage(url, fileName)
     if not writeSuccess then
 
         warn(
-            "[Shadow Toggle] Could not write:",
+            "[ShadowToggle] Could not write:",
             path
         )
 
@@ -162,7 +184,9 @@ local function downloadImage(url, fileName)
 
         local success, asset =
             pcall(function()
+
                 return getAsset(path)
+
             end)
 
         if success and asset then
@@ -176,19 +200,19 @@ local function downloadImage(url, fileName)
 end
 
 -- =========================================================
--- LOAD IMAGES
+-- LOAD ARCEUS IMAGES
 -- =========================================================
 
 local visibleAsset =
     downloadImage(
         VISIBLE_URL,
-        "visible.png"
+        "arceus_visible.png"
     )
 
 local hiddenAsset =
     downloadImage(
         HIDDEN_URL,
-        "hidden.png"
+        "arceus_hidden.png"
     )
 
 -- =========================================================
@@ -210,22 +234,25 @@ if not targetParent then
 end
 
 if not targetParent then
-    targetParent = LocalPlayer:WaitForChild("PlayerGui")
+    targetParent =
+        LocalPlayer:WaitForChild(
+            "PlayerGui"
+        )
 end
 
 -- =========================================================
--- REMOVE PREVIOUS UI
+-- REMOVE OLD GUI
 -- =========================================================
 
 pcall(function()
 
-    local old =
+    local oldGui =
         targetParent:FindFirstChild(
-            "ShadowVisibilityFullbrightToggle"
+            "ShadowToggle"
         )
 
-    if old then
-        old:Destroy()
+    if oldGui then
+        oldGui:Destroy()
     end
 
 end)
@@ -294,146 +321,272 @@ local function findArceusX()
 end
 
 -- =========================================================
--- SCREEN GUI
+-- MAIN SCREEN GUI
 -- =========================================================
 
-local toggleGui =
+local shadowGui =
     Instance.new("ScreenGui")
 
-toggleGui.Name =
-    "ShadowVisibilityFullbrightToggle"
+shadowGui.Name =
+    "ShadowToggle"
 
-toggleGui.ResetOnSpawn = false
-toggleGui.IgnoreGuiInset = true
-toggleGui.DisplayOrder = 2147483647
-toggleGui.ZIndexBehavior =
+shadowGui.ResetOnSpawn = false
+shadowGui.IgnoreGuiInset = true
+shadowGui.DisplayOrder = 2147483647
+shadowGui.ZIndexBehavior =
     Enum.ZIndexBehavior.Sibling
 
-toggleGui.Parent = targetParent
+shadowGui.Parent =
+    targetParent
 
 -- =========================================================
 -- MAIN SHADOW
 -- =========================================================
 
-local mainShadow =
+local shadow =
     Instance.new("Frame")
 
-mainShadow.Name = "MainShadow"
+shadow.Name =
+    "Shadow"
 
-mainShadow.Size =
+shadow.Size =
     UDim2.fromOffset(
-        BUTTON_SIZE + 8,
-        BUTTON_SIZE + 8
+        UI_WIDTH + 8,
+        UI_HEIGHT + 8
     )
 
-mainShadow.Position =
+shadow.Position =
     UDim2.fromOffset(
-        MAIN_X + 3,
-        MAIN_Y + 3
+        START_X + 3,
+        START_Y + 3
     )
 
-mainShadow.BackgroundColor3 =
-    Color3.fromRGB(0, 0, 0)
+shadow.BackgroundColor3 =
+    Color3.fromRGB(
+        0,
+        0,
+        0
+    )
 
-mainShadow.BackgroundTransparency = 0.45
+shadow.BackgroundTransparency =
+    0.42
 
-mainShadow.ZIndex = 1
-mainShadow.Parent = toggleGui
+shadow.ZIndex = 1
+shadow.Parent = shadowGui
 
-local mainShadowCorner =
+local shadowCorner =
     Instance.new("UICorner")
 
-mainShadowCorner.CornerRadius =
-    UDim.new(0, 17)
-
-mainShadowCorner.Parent =
-    mainShadow
-
--- =========================================================
--- MAIN BUTTON
--- =========================================================
-
-local button =
-    Instance.new("ImageButton")
-
-button.Name =
-    "ToggleButton"
-
-button.Size =
-    UDim2.fromOffset(
-        BUTTON_SIZE,
-        BUTTON_SIZE
+shadowCorner.CornerRadius =
+    UDim.new(
+        0,
+        16
     )
 
-button.Position =
+shadowCorner.Parent =
+    shadow
+
+-- =========================================================
+-- MAIN RECTANGLE
+-- =========================================================
+
+local main =
+    Instance.new("Frame")
+
+main.Name =
+    "Main"
+
+main.Size =
     UDim2.fromOffset(
-        MAIN_X,
-        MAIN_Y
+        UI_WIDTH,
+        UI_HEIGHT
     )
 
-button.BackgroundColor3 =
+main.Position =
+    UDim2.fromOffset(
+        START_X,
+        START_Y
+    )
+
+main.BackgroundColor3 =
     Color3.fromRGB(
         12,
         12,
         16
     )
 
-button.BackgroundTransparency = 0
-button.Image = ""
-button.AutoButtonColor = false
-button.Active = true
+main.BackgroundTransparency = 0
 
-button.ZIndex = 10
-button.Parent = toggleGui
+main.Active = true
+
+main.ZIndex = 5
+main.Parent = shadowGui
 
 -- =========================================================
 -- MAIN CORNER
 -- =========================================================
 
-local buttonCorner =
+local mainCorner =
     Instance.new("UICorner")
 
-buttonCorner.CornerRadius =
-    UDim.new(0, 15)
+mainCorner.CornerRadius =
+    UDim.new(
+        0,
+        14
+    )
 
-buttonCorner.Parent =
-    button
+mainCorner.Parent =
+    main
 
 -- =========================================================
 -- MAIN GRADIENT
 -- =========================================================
 
-local gradient =
+local mainGradient =
     Instance.new("UIGradient")
 
-gradient.Name =
-    "InnerGradient"
+mainGradient.Name =
+    "Gradient"
 
-gradient.Color =
+mainGradient.Color =
     ColorSequence.new({
 
         ColorSequenceKeypoint.new(
             0,
-            Color3.fromRGB(7, 7, 10)
+            Color3.fromRGB(
+                7,
+                7,
+                10
+            )
         ),
 
         ColorSequenceKeypoint.new(
             0.5,
-            Color3.fromRGB(30, 30, 38)
+            Color3.fromRGB(
+                30,
+                30,
+                38
+            )
         ),
 
         ColorSequenceKeypoint.new(
             1,
-            Color3.fromRGB(7, 7, 10)
+            Color3.fromRGB(
+                7,
+                7,
+                10
+            )
         )
 
     })
 
-gradient.Rotation = 45
-gradient.Parent = button
+mainGradient.Rotation = 0
+
+mainGradient.Parent =
+    main
 
 -- =========================================================
--- IMAGE CONTAINER
+-- MAIN BORDER
+-- =========================================================
+
+local mainBorder =
+    Instance.new("UIStroke")
+
+mainBorder.Name =
+    "Border"
+
+mainBorder.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
+
+mainBorder.Thickness = 2
+
+mainBorder.Color =
+    Color3.fromRGB(
+        0,
+        200,
+        255
+    )
+
+mainBorder.Parent =
+    main
+
+-- =========================================================
+-- MAIN GLOW
+-- =========================================================
+
+local mainGlow =
+    Instance.new("UIStroke")
+
+mainGlow.Name =
+    "Glow"
+
+mainGlow.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
+
+mainGlow.Thickness = 5
+
+mainGlow.Transparency =
+    0.72
+
+mainGlow.Color =
+    Color3.fromRGB(
+        0,
+        200,
+        255
+    )
+
+mainGlow.Parent =
+    main
+
+-- =========================================================
+-- MAIN SCALE
+-- =========================================================
+
+local mainScale =
+    Instance.new("UIScale")
+
+mainScale.Scale = 1
+
+mainScale.Parent =
+    main
+
+-- =========================================================
+-- ARCEUS IMAGE BUTTON
+-- =========================================================
+
+local arceusButton =
+    Instance.new("ImageButton")
+
+arceusButton.Name =
+    "ArceusToggle"
+
+arceusButton.Size =
+    UDim2.fromOffset(
+        ARCEUS_SIZE,
+        ARCEUS_SIZE
+    )
+
+arceusButton.Position =
+    UDim2.fromOffset(
+        0,
+        0
+    )
+
+arceusButton.BackgroundTransparency =
+    1
+
+arceusButton.Image = ""
+
+arceusButton.AutoButtonColor =
+    false
+
+arceusButton.ZIndex = 7
+
+arceusButton.Parent =
+    main
+
+-- =========================================================
+-- ARCEUS IMAGE CONTAINER
 -- =========================================================
 
 local imageContainer =
@@ -443,7 +596,10 @@ imageContainer.Name =
     "ImageContainer"
 
 imageContainer.AnchorPoint =
-    Vector2.new(0.5, 0.5)
+    Vector2.new(
+        0.5,
+        0.5
+    )
 
 imageContainer.Position =
     UDim2.fromScale(
@@ -457,21 +613,28 @@ imageContainer.Size =
         38
     )
 
-imageContainer.BackgroundTransparency = 1
-imageContainer.ZIndex = 11
-imageContainer.Parent = button
+imageContainer.BackgroundTransparency =
+    1
+
+imageContainer.ZIndex = 8
+
+imageContainer.Parent =
+    arceusButton
 
 local imageContainerCorner =
     Instance.new("UICorner")
 
 imageContainerCorner.CornerRadius =
-    UDim.new(0, 11)
+    UDim.new(
+        0,
+        11
+    )
 
 imageContainerCorner.Parent =
     imageContainer
 
 -- =========================================================
--- VISIBLE IMAGE
+-- VISIBLE ARCEUS IMAGE
 -- =========================================================
 
 local visibleImage =
@@ -481,12 +644,13 @@ visibleImage.Name =
     "VisibleImage"
 
 visibleImage.Size =
-    UDim2.fromScale(1, 1)
+    UDim2.fromScale(
+        1,
+        1
+    )
 
-visibleImage.Position =
-    UDim2.fromScale(0, 0)
-
-visibleImage.BackgroundTransparency = 1
+visibleImage.BackgroundTransparency =
+    1
 
 visibleImage.Image =
     visibleAsset or ""
@@ -497,7 +661,8 @@ visibleImage.ScaleType =
 visibleImage.Visible =
     visibleAsset ~= nil
 
-visibleImage.ZIndex = 12
+visibleImage.ZIndex = 9
+
 visibleImage.Parent =
     imageContainer
 
@@ -505,13 +670,16 @@ local visibleCorner =
     Instance.new("UICorner")
 
 visibleCorner.CornerRadius =
-    UDim.new(0, 11)
+    UDim.new(
+        0,
+        11
+    )
 
 visibleCorner.Parent =
     visibleImage
 
 -- =========================================================
--- HIDDEN IMAGE
+-- HIDDEN ARCEUS IMAGE
 -- =========================================================
 
 local hiddenImage =
@@ -521,12 +689,13 @@ hiddenImage.Name =
     "HiddenImage"
 
 hiddenImage.Size =
-    UDim2.fromScale(1, 1)
+    UDim2.fromScale(
+        1,
+        1
+    )
 
-hiddenImage.Position =
-    UDim2.fromScale(0, 0)
-
-hiddenImage.BackgroundTransparency = 1
+hiddenImage.BackgroundTransparency =
+    1
 
 hiddenImage.Image =
     hiddenAsset or ""
@@ -536,7 +705,8 @@ hiddenImage.ScaleType =
 
 hiddenImage.Visible = false
 
-hiddenImage.ZIndex = 12
+hiddenImage.ZIndex = 9
+
 hiddenImage.Parent =
     imageContainer
 
@@ -544,110 +714,52 @@ local hiddenCorner =
     Instance.new("UICorner")
 
 hiddenCorner.CornerRadius =
-    UDim.new(0, 11)
+    UDim.new(
+        0,
+        11
+    )
 
 hiddenCorner.Parent =
     hiddenImage
 
 -- =========================================================
--- MAIN BORDER
+-- SEPARATOR
 -- =========================================================
 
-local border =
-    Instance.new("UIStroke")
-
-border.Name = "Border"
-
-border.ApplyStrokeMode =
-    Enum.ApplyStrokeMode.Border
-
-border.Thickness = 2
-
-border.Color =
-    Color3.fromRGB(
-        0,
-        200,
-        255
-    )
-
-border.Parent = button
-
--- =========================================================
--- MAIN GLOW
--- =========================================================
-
-local glow =
-    Instance.new("UIStroke")
-
-glow.Name =
-    "NeonGlow"
-
-glow.ApplyStrokeMode =
-    Enum.ApplyStrokeMode.Border
-
-glow.Thickness = 5
-
-glow.Transparency = 0.72
-
-glow.Color =
-    Color3.fromRGB(
-        0,
-        200,
-        255
-    )
-
-glow.Parent = button
-
--- =========================================================
--- MAIN SCALE
--- =========================================================
-
-local scale =
-    Instance.new("UIScale")
-
-scale.Scale = 1
-scale.Parent = button
-
--- =========================================================
--- FULLBRIGHT SHADOW
--- =========================================================
-
-local fullbrightShadow =
+local separator =
     Instance.new("Frame")
 
-fullbrightShadow.Name =
-    "FullbrightShadow"
+separator.Name =
+    "Separator"
 
-fullbrightShadow.Size =
+separator.Size =
     UDim2.fromOffset(
-        FULLBRIGHT_SIZE + 8,
-        FULLBRIGHT_SIZE + 8
+        1,
+        28
     )
 
-fullbrightShadow.Position =
+separator.Position =
     UDim2.fromOffset(
-        MAIN_X + BUTTON_SIZE + 3,
-        MAIN_Y + 7
+        ARCEUS_SIZE,
+        13
     )
 
-fullbrightShadow.BackgroundColor3 =
-    Color3.fromRGB(0, 0, 0)
+separator.BackgroundColor3 =
+    Color3.fromRGB(
+        65,
+        65,
+        72
+    )
 
-fullbrightShadow.BackgroundTransparency =
-    0.45
+separator.BackgroundTransparency =
+    0.35
 
-fullbrightShadow.ZIndex = 1
-fullbrightShadow.Parent =
-    toggleGui
+separator.BorderSizePixel = 0
 
-local fullbrightShadowCorner =
-    Instance.new("UICorner")
+separator.ZIndex = 8
 
-fullbrightShadowCorner.CornerRadius =
-    UDim.new(0, 15)
-
-fullbrightShadowCorner.Parent =
-    fullbrightShadow
+separator.Parent =
+    main
 
 -- =========================================================
 -- FULLBRIGHT BUTTON
@@ -657,378 +769,169 @@ local fullbrightButton =
     Instance.new("ImageButton")
 
 fullbrightButton.Name =
-    "FullbrightButton"
+    "FullbrightToggle"
 
 fullbrightButton.Size =
     UDim2.fromOffset(
-        FULLBRIGHT_SIZE,
-        FULLBRIGHT_SIZE
+        STAR_AREA_SIZE,
+        UI_HEIGHT
     )
 
 fullbrightButton.Position =
     UDim2.fromOffset(
-        MAIN_X + BUTTON_SIZE,
-        MAIN_Y + 4
+        ARCEUS_SIZE + 1,
+        0
     )
 
-fullbrightButton.BackgroundColor3 =
-    Color3.fromRGB(
-        12,
-        12,
-        16
-    )
+fullbrightButton.BackgroundTransparency =
+    1
 
-fullbrightButton.BackgroundTransparency = 0
 fullbrightButton.Image = ""
-fullbrightButton.AutoButtonColor = false
-fullbrightButton.Active = true
 
-fullbrightButton.ZIndex = 10
-fullbrightButton.Parent = toggleGui
+fullbrightButton.AutoButtonColor =
+    false
 
--- =========================================================
--- FULLBRIGHT CORNER
--- =========================================================
+fullbrightButton.ZIndex = 7
 
-local fullbrightCorner =
-    Instance.new("UICorner")
-
-fullbrightCorner.CornerRadius =
-    UDim.new(0, 13)
-
-fullbrightCorner.Parent =
-    fullbrightButton
+fullbrightButton.Parent =
+    main
 
 -- =========================================================
--- FULLBRIGHT GRADIENT
+-- STAR ICON
 -- =========================================================
 
-local fullbrightGradient =
-    Instance.new("UIGradient")
+local star =
+    Instance.new("TextLabel")
 
-fullbrightGradient.Name =
-    "InnerGradient"
+star.Name =
+    "Star"
 
-fullbrightGradient.Color =
-    ColorSequence.new({
+star.AnchorPoint =
+    Vector2.new(
+        0.5,
+        0.5
+    )
 
-        ColorSequenceKeypoint.new(
-            0,
-            Color3.fromRGB(7, 7, 10)
-        ),
-
-        ColorSequenceKeypoint.new(
-            0.5,
-            Color3.fromRGB(30, 30, 38)
-        ),
-
-        ColorSequenceKeypoint.new(
-            1,
-            Color3.fromRGB(7, 7, 10)
-        )
-
-    })
-
-fullbrightGradient.Rotation = 45
-fullbrightGradient.Parent =
-    fullbrightButton
-
--- =========================================================
--- LAMP CONTAINER
--- =========================================================
-
-local lampContainer =
-    Instance.new("Frame")
-
-lampContainer.Name =
-    "LampContainer"
-
-lampContainer.AnchorPoint =
-    Vector2.new(0.5, 0.5)
-
-lampContainer.Position =
+star.Position =
     UDim2.fromScale(
         0.5,
         0.5
     )
 
-lampContainer.Size =
+star.Size =
     UDim2.fromOffset(
-        28,
-        28
+        29,
+        29
     )
 
-lampContainer.BackgroundTransparency = 1
-lampContainer.ZIndex = 11
-lampContainer.Parent =
+star.BackgroundTransparency =
+    1
+
+star.Text =
+    "★"
+
+star.TextScaled = true
+
+star.Font =
+    Enum.Font.GothamBold
+
+star.TextColor3 =
+    Color3.fromRGB(
+        235,
+        235,
+        240
+    )
+
+star.ZIndex = 9
+
+star.Parent =
     fullbrightButton
 
 -- =========================================================
--- LAMP SHADE
+-- STAR OUTLINE
 -- =========================================================
 
-local lampShade =
-    Instance.new("Frame")
-
-lampShade.Name =
-    "Shade"
-
-lampShade.AnchorPoint =
-    Vector2.new(0.5, 0)
-
-lampShade.Position =
-    UDim2.fromScale(
-        0.5,
-        0.08
-    )
-
-lampShade.Size =
-    UDim2.fromOffset(
-        18,
-        11
-    )
-
-lampShade.BackgroundColor3 =
-    Color3.fromRGB(
-        245,
-        245,
-        245
-    )
-
-lampShade.BorderSizePixel = 0
-lampShade.ZIndex = 12
-lampShade.Parent =
-    lampContainer
-
-local lampShadeCorner =
-    Instance.new("UICorner")
-
-lampShadeCorner.CornerRadius =
-    UDim.new(0, 7)
-
-lampShadeCorner.Parent =
-    lampShade
-
--- =========================================================
--- BLACK SHADE OUTLINE
--- =========================================================
-
-local lampShadeStroke =
+local starStroke =
     Instance.new("UIStroke")
 
-lampShadeStroke.Thickness = 1.5
-lampShadeStroke.Color =
+starStroke.Thickness =
+    1.2
+
+starStroke.Color =
     Color3.fromRGB(
-        25,
-        25,
-        25
+        15,
+        15,
+        18
     )
 
-lampShadeStroke.ApplyStrokeMode =
-    Enum.ApplyStrokeMode.Border
+starStroke.Transparency =
+    0.15
 
-lampShadeStroke.Parent =
-    lampShade
-
--- =========================================================
--- LAMP BASE / STEM
--- =========================================================
-
-local lampStem =
-    Instance.new("Frame")
-
-lampStem.Name =
-    "Stem"
-
-lampStem.AnchorPoint =
-    Vector2.new(0.5, 0)
-
-lampStem.Position =
-    UDim2.fromScale(
-        0.5,
-        0.47
-    )
-
-lampStem.Size =
-    UDim2.fromOffset(
-        3,
-        6
-    )
-
-lampStem.BackgroundColor3 =
-    Color3.fromRGB(
-        245,
-        245,
-        245
-    )
-
-lampStem.BorderSizePixel = 0
-lampStem.ZIndex = 12
-lampStem.Parent =
-    lampContainer
-
-local lampStemCorner =
-    Instance.new("UICorner")
-
-lampStemCorner.CornerRadius =
-    UDim.new(1, 0)
-
-lampStemCorner.Parent =
-    lampStem
+starStroke.Parent =
+    star
 
 -- =========================================================
--- LAMP BASE
+-- FULLBRIGHT INDICATOR
 -- =========================================================
 
-local lampBase =
-    Instance.new("Frame")
-
-lampBase.Name =
-    "Base"
-
-lampBase.AnchorPoint =
-    Vector2.new(0.5, 0)
-
-lampBase.Position =
-    UDim2.fromScale(
-        0.5,
-        0.70
-    )
-
-lampBase.Size =
-    UDim2.fromOffset(
-        12,
-        3
-    )
-
-lampBase.BackgroundColor3 =
-    Color3.fromRGB(
-        245,
-        245,
-        245
-    )
-
-lampBase.BorderSizePixel = 0
-lampBase.ZIndex = 12
-lampBase.Parent =
-    lampContainer
-
-local lampBaseCorner =
-    Instance.new("UICorner")
-
-lampBaseCorner.CornerRadius =
-    UDim.new(1, 0)
-
-lampBaseCorner.Parent =
-    lampBase
-
--- =========================================================
--- LAMP BLACK DETAILS
--- =========================================================
-
-local lampDetail =
-    Instance.new("Frame")
-
-lampDetail.Name =
-    "Detail"
-
-lampDetail.AnchorPoint =
-    Vector2.new(0.5, 0.5)
-
-lampDetail.Position =
-    UDim2.fromScale(
-        0.5,
-        0.38
-    )
-
-lampDetail.Size =
-    UDim2.fromOffset(
-        9,
-        1
-    )
-
-lampDetail.BackgroundColor3 =
-    Color3.fromRGB(
-        25,
-        25,
-        25
-    )
-
-lampDetail.BorderSizePixel = 0
-lampDetail.ZIndex = 13
-lampDetail.Parent =
-    lampContainer
-
-local lampDetailCorner =
-    Instance.new("UICorner")
-
-lampDetailCorner.CornerRadius =
-    UDim.new(1, 0)
-
-lampDetailCorner.Parent =
-    lampDetail
-
--- =========================================================
--- LAMP SCALE
--- =========================================================
-
-local fullbrightScale =
-    Instance.new("UIScale")
-
-fullbrightScale.Scale = 1
-fullbrightScale.Parent =
-    fullbrightButton
-
--- =========================================================
--- FULLBRIGHT BORDER
--- =========================================================
-
-local fullbrightBorder =
+local starGlow =
     Instance.new("UIStroke")
 
-fullbrightBorder.Name =
-    "Border"
+starGlow.Name =
+    "StarGlow"
 
-fullbrightBorder.ApplyStrokeMode =
-    Enum.ApplyStrokeMode.Border
+starGlow.Thickness =
+    0.8
 
-fullbrightBorder.Thickness = 2
-
-fullbrightBorder.Color =
-    Color3.fromRGB(
-        255,
-        255,
-        255
-    )
-
-fullbrightBorder.Parent =
-    fullbrightButton
-
--- =========================================================
--- FULLBRIGHT GLOW
--- =========================================================
-
-local fullbrightGlow =
-    Instance.new("UIStroke")
-
-fullbrightGlow.Name =
-    "NeonGlow"
-
-fullbrightGlow.ApplyStrokeMode =
-    Enum.ApplyStrokeMode.Border
-
-fullbrightGlow.Thickness = 5
-
-fullbrightGlow.Transparency = 1
-
-fullbrightGlow.Color =
+starGlow.Color =
     Color3.fromRGB(
         0,
         200,
         255
     )
 
-fullbrightGlow.Parent =
+starGlow.Transparency = 1
+
+starGlow.Parent =
+    star
+
+-- =========================================================
+-- FULLBRIGHT SCALE
+-- =========================================================
+
+local fullbrightScale =
+    Instance.new("UIScale")
+
+fullbrightScale.Scale = 1
+
+fullbrightScale.Parent =
+    fullbrightButton
+
+-- =========================================================
+-- FULLBRIGHT INTERNAL BORDER
+-- =========================================================
+
+local fullbrightBorder =
+    Instance.new("UIStroke")
+
+fullbrightBorder.Name =
+    "FullbrightBorder"
+
+fullbrightBorder.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
+
+fullbrightBorder.Thickness = 1
+
+fullbrightBorder.Transparency = 1
+
+fullbrightBorder.Color =
+    Color3.fromRGB(
+        0,
+        200,
+        255
+    )
+
+fullbrightBorder.Parent =
     fullbrightButton
 
 -- =========================================================
@@ -1052,8 +955,8 @@ end)
 -- STATES
 -- =========================================================
 
-local hidden = false
-local fullbright = false
+local arceusHidden = false
+local fullbrightEnabled = false
 
 local dragging = false
 local dragStart = nil
@@ -1100,9 +1003,13 @@ local function enableFullbright()
     saveLighting()
 
     Lighting.Brightness = 2
+
     Lighting.ClockTime = 14
+
     Lighting.FogEnd = 100000
+
     Lighting.GlobalShadows = false
+
     Lighting.OutdoorAmbient =
         Color3.fromRGB(
             128,
@@ -1132,26 +1039,26 @@ local function disableFullbright()
 end
 
 -- =========================================================
--- MAIN APPEARANCE
+-- ARCEUS APPEARANCE
 -- =========================================================
 
-local function updateAppearance()
+local function updateArceusAppearance()
 
-    if hidden then
+    if arceusHidden then
 
         visibleImage.Visible = false
+
         hiddenImage.Visible =
             hiddenAsset ~= nil
 
-        border.Color =
+        mainBorder.Color =
             Color3.fromRGB(
                 255,
                 255,
                 255
             )
 
-        border.Thickness = 2
-        glow.Transparency = 1
+        mainGlow.Transparency = 1
 
     else
 
@@ -1160,24 +1067,22 @@ local function updateAppearance()
 
         hiddenImage.Visible = false
 
-        border.Color =
+        mainBorder.Color =
             Color3.fromRGB(
                 0,
                 200,
                 255
             )
 
-        border.Thickness = 2
-
-        glow.Color =
+        mainGlow.Color =
             Color3.fromRGB(
                 0,
                 200,
                 255
             )
 
-        glow.Thickness = 5
-        glow.Transparency = 0.72
+        mainGlow.Transparency =
+            0.72
 
     end
 
@@ -1189,97 +1094,42 @@ end
 
 local function updateFullbrightAppearance()
 
-    local onColor =
-        Color3.fromRGB(
-            0,
-            200,
-            255
-        )
+    if fullbrightEnabled then
 
-    local offColor =
-        Color3.fromRGB(
-            245,
-            245,
-            245
-        )
-
-    if fullbright then
-
-        fullbrightBorder.Color = onColor
-        fullbrightGlow.Color = onColor
-        fullbrightGlow.Transparency = 0.65
-
-        -- White lamp
-        lampShade.BackgroundColor3 =
+        star.TextColor3 =
             Color3.fromRGB(
                 255,
                 255,
                 255
             )
 
-        lampStem.BackgroundColor3 =
-            Color3.fromRGB(
-                255,
-                255,
-                255
-            )
-
-        lampBase.BackgroundColor3 =
-            Color3.fromRGB(
-                255,
-                255,
-                255
-            )
-
-        TweenService:Create(
-            lampDetail,
-            TweenInfo.new(
-                0.15,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                BackgroundColor3 = onColor
-            }
-        ):Play()
-
-    else
+        starGlow.Transparency =
+            0
 
         fullbrightBorder.Color =
             Color3.fromRGB(
-                255,
-                255,
+                0,
+                200,
                 255
             )
 
-        fullbrightGlow.Transparency = 1
+        fullbrightBorder.Transparency =
+            0.55
 
-        -- White / black minimal lamp
-        lampShade.BackgroundColor3 =
-            offColor
+    else
 
-        lampStem.BackgroundColor3 =
-            offColor
+        star.TextColor3 =
+            Color3.fromRGB(
+                235,
+                235,
+                240
+            )
 
-        lampBase.BackgroundColor3 =
-            offColor
+        starGlow.Transparency =
+            1
 
-        TweenService:Create(
-            lampDetail,
-            TweenInfo.new(
-                0.15,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                BackgroundColor3 =
-                    Color3.fromRGB(
-                        25,
-                        25,
-                        25
-                    )
-            }
-        ):Play()
+        fullbrightBorder.Transparency =
+            1
 
     end
 
@@ -1289,11 +1139,11 @@ end
 -- CLICK ANIMATION
 -- =========================================================
 
-local function clickAnimation(targetScale)
+local function clickAnimation(target)
 
     local down =
         TweenService:Create(
-            targetScale,
+            target,
             TweenInfo.new(
                 0.06,
                 Enum.EasingStyle.Quad,
@@ -1306,9 +1156,9 @@ local function clickAnimation(targetScale)
 
     local up =
         TweenService:Create(
-            targetScale,
+            target,
             TweenInfo.new(
-                0.10,
+                0.11,
                 Enum.EasingStyle.Back,
                 Enum.EasingDirection.Out
             ),
@@ -1331,13 +1181,13 @@ end
 
 task.spawn(function()
 
-    while toggleGui.Parent do
+    while shadowGui.Parent do
 
-        if not hidden then
+        if not arceusHidden then
 
-            local tweenIn =
+            local inTween =
                 TweenService:Create(
-                    glow,
+                    mainGlow,
                     TweenInfo.new(
                         1.1,
                         Enum.EasingStyle.Sine,
@@ -1348,9 +1198,9 @@ task.spawn(function()
                     }
                 )
 
-            local tweenOut =
+            local outTween =
                 TweenService:Create(
-                    glow,
+                    mainGlow,
                     TweenInfo.new(
                         1.1,
                         Enum.EasingStyle.Sine,
@@ -1361,15 +1211,15 @@ task.spawn(function()
                     }
                 )
 
-            tweenIn:Play()
-            tweenIn.Completed:Wait()
+            inTween:Play()
+            inTween.Completed:Wait()
 
-            if hidden then
+            if arceusHidden then
                 continue
             end
 
-            tweenOut:Play()
-            tweenOut.Completed:Wait()
+            outTween:Play()
+            outTween.Completed:Wait()
 
         else
 
@@ -1382,50 +1232,50 @@ task.spawn(function()
 end)
 
 -- =========================================================
--- FULLBRIGHT GLOW PULSE
+-- FULLBRIGHT STAR PULSE
 -- =========================================================
 
 task.spawn(function()
 
-    while toggleGui.Parent do
+    while shadowGui.Parent do
 
-        if fullbright then
+        if fullbrightEnabled then
 
-            local tweenIn =
+            local inTween =
                 TweenService:Create(
-                    fullbrightGlow,
+                    starGlow,
                     TweenInfo.new(
-                        1,
+                        0.9,
                         Enum.EasingStyle.Sine,
                         Enum.EasingDirection.InOut
                     ),
                     {
-                        Transparency = 0.45
+                        Transparency = 0.15
                     }
                 )
 
-            local tweenOut =
+            local outTween =
                 TweenService:Create(
-                    fullbrightGlow,
+                    starGlow,
                     TweenInfo.new(
-                        1,
+                        0.9,
                         Enum.EasingStyle.Sine,
                         Enum.EasingDirection.InOut
                     ),
                     {
-                        Transparency = 0.75
+                        Transparency = 0.55
                     }
                 )
 
-            tweenIn:Play()
-            tweenIn.Completed:Wait()
+            inTween:Play()
+            inTween.Completed:Wait()
 
-            if not fullbright then
+            if not fullbrightEnabled then
                 continue
             end
 
-            tweenOut:Play()
-            tweenOut.Completed:Wait()
+            outTween:Play()
+            outTween.Completed:Wait()
 
         else
 
@@ -1438,33 +1288,33 @@ task.spawn(function()
 end)
 
 -- =========================================================
--- PC HOVER
+-- HOVER
 -- =========================================================
 
 if not UserInputService.TouchEnabled then
 
-    button.MouseEnter:Connect(function()
+    main.MouseEnter:Connect(function()
 
         TweenService:Create(
-            scale,
+            mainScale,
             TweenInfo.new(
                 0.15,
                 Enum.EasingStyle.Quad,
                 Enum.EasingDirection.Out
             ),
             {
-                Scale = 1.06
+                Scale = 1.04
             }
         ):Play()
 
     end)
 
-    button.MouseLeave:Connect(function()
+    main.MouseLeave:Connect(function()
 
         if not dragging then
 
             TweenService:Create(
-                scale,
+                mainScale,
                 TweenInfo.new(
                     0.15,
                     Enum.EasingStyle.Quad,
@@ -1489,7 +1339,7 @@ if not UserInputService.TouchEnabled then
                 Enum.EasingDirection.Out
             ),
             {
-                Scale = 1.06
+                Scale = 1.08
             }
         ):Play()
 
@@ -1514,10 +1364,10 @@ if not UserInputService.TouchEnabled then
 end
 
 -- =========================================================
--- MAIN DRAG START
+-- DRAG START
 -- =========================================================
 
-button.InputBegan:Connect(function(input)
+main.InputBegan:Connect(function(input)
 
     if
         input.UserInputType ==
@@ -1528,8 +1378,13 @@ button.InputBegan:Connect(function(input)
     then
 
         dragging = true
-        dragStart = input.Position
-        startPosition = button.Position
+
+        dragStart =
+            input.Position
+
+        startPosition =
+            main.Position
+
         movedDistance = 0
 
     end
@@ -1542,22 +1397,24 @@ end)
 
 local function clampPosition(x, y)
 
-    local viewport =
-        workspace.CurrentCamera.ViewportSize
+    local camera =
+        workspace.CurrentCamera
 
-    -- Full group width
-    local groupWidth =
-        BUTTON_SIZE
-        + FULLBRIGHT_SIZE
+    if not camera then
+        return x, y
+    end
+
+    local viewport =
+        camera.ViewportSize
 
     local maxX =
         viewport.X
-        - groupWidth
+        - UI_WIDTH
         - EDGE_PADDING
 
     local maxY =
         viewport.Y
-        - BUTTON_SIZE
+        - UI_HEIGHT
         - EDGE_PADDING
 
     x = math.clamp(
@@ -1577,10 +1434,10 @@ local function clampPosition(x, y)
 end
 
 -- =========================================================
--- UPDATE GROUP POSITION
+-- UPDATE POSITION
 -- =========================================================
 
-local function updateGroupPosition(x, y)
+local function updatePosition(x, y)
 
     x, y =
         clampPosition(
@@ -1588,43 +1445,16 @@ local function updateGroupPosition(x, y)
             y
         )
 
-    -- -----------------------------------------------------
-    -- Main
-    -- -----------------------------------------------------
-
-    button.Position =
+    main.Position =
         UDim2.fromOffset(
             x,
             y
         )
 
-    mainShadow.Position =
+    shadow.Position =
         UDim2.fromOffset(
             x + 3,
             y + 3
-        )
-
-    -- -----------------------------------------------------
-    -- Fullbright
-    -- ZERO GAP
-    -- -----------------------------------------------------
-
-    local fullX =
-        x + BUTTON_SIZE
-
-    local fullY =
-        y + 4
-
-    fullbrightButton.Position =
-        UDim2.fromOffset(
-            fullX,
-            fullY
-        )
-
-    fullbrightShadow.Position =
-        UDim2.fromOffset(
-            fullX + 3,
-            fullY + 3
         )
 
 end
@@ -1670,7 +1500,7 @@ UserInputService.InputChanged:Connect(function(input)
         startPosition.Y.Offset
         + delta.Y
 
-    updateGroupPosition(
+    updatePosition(
         newX,
         newY
     )
@@ -1678,7 +1508,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- =========================================================
--- DRAG END / MAIN CLICK
+-- INPUT ENDED
 -- =========================================================
 
 UserInputService.InputEnded:Connect(function(input)
@@ -1701,13 +1531,19 @@ UserInputService.InputEnded:Connect(function(input)
 
     dragging = false
 
+    -- -----------------------------------------------------
+    -- CLICK ON ARCEUS IMAGE
+    -- -----------------------------------------------------
+
     if movedDistance <
         DRAG_THRESHOLD then
 
-        clickAnimation(scale)
+        clickAnimation(
+            mainScale
+        )
 
-        hidden =
-            not hidden
+        arceusHidden =
+            not arceusHidden
 
         local arceusGui =
             findArceusX()
@@ -1715,17 +1551,17 @@ UserInputService.InputEnded:Connect(function(input)
         if arceusGui then
 
             arceusGui.Enabled =
-                not hidden
+                not arceusHidden
 
         else
 
             warn(
-                "[Shadow Toggle] Arceus X GUI not found."
+                "[ShadowToggle] Arceus X GUI not found."
             )
 
         end
 
-        updateAppearance()
+        updateArceusAppearance()
 
     end
 
@@ -1741,10 +1577,10 @@ fullbrightButton.Activated:Connect(function()
         fullbrightScale
     )
 
-    fullbright =
-        not fullbright
+    fullbrightEnabled =
+        not fullbrightEnabled
 
-    if fullbright then
+    if fullbrightEnabled then
 
         enableFullbright()
 
@@ -1766,9 +1602,9 @@ workspace.CurrentCamera:GetPropertyChangedSignal(
     "ViewportSize"
 ):Connect(function()
 
-    updateGroupPosition(
-        button.Position.X.Offset,
-        button.Position.Y.Offset
+    updatePosition(
+        main.Position.X.Offset,
+        main.Position.Y.Offset
     )
 
 end)
@@ -1777,14 +1613,14 @@ end)
 -- INITIALIZE
 -- =========================================================
 
-updateGroupPosition(
-    MAIN_X,
-    MAIN_Y
+updatePosition(
+    START_X,
+    START_Y
 )
 
-updateAppearance()
+updateArceusAppearance()
 updateFullbrightAppearance()
 
 print(
-    "[Shadow Toggle] Loaded successfully."
+    "[ShadowToggle] Loaded."
 )
