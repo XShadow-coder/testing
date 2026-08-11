@@ -24,15 +24,11 @@ local HIDDEN_URL =
 
 local ASSET_FOLDER = "ShadowToggle"
 
--- ---------------------------------------------------------
--- UI SIZE
--- ---------------------------------------------------------
-
 local UI_WIDTH = 112
 local UI_HEIGHT = 54
 
 local ARCEUS_SIZE = 54
-local STAR_AREA_SIZE = 46
+local STAR_AREA_SIZE = 58
 
 local EDGE_PADDING = 10
 local DRAG_THRESHOLD = 8
@@ -41,7 +37,7 @@ local START_X = 20
 local START_Y = 100
 
 -- =========================================================
--- HTTP / ASSET FUNCTIONS
+-- HTTP / ASSET
 -- =========================================================
 
 local httpRequest =
@@ -55,10 +51,6 @@ local getAsset =
 
 local function downloadImage(url, fileName)
 
-    -- -----------------------------------------------------
-    -- Folder
-    -- -----------------------------------------------------
-
     if not isfolder(ASSET_FOLDER) then
 
         pcall(function()
@@ -71,16 +63,14 @@ local function downloadImage(url, fileName)
         ASSET_FOLDER .. "/" .. fileName
 
     -- -----------------------------------------------------
-    -- Cached asset
+    -- CACHE
     -- -----------------------------------------------------
 
     if isfile(path) and getAsset then
 
         local success, asset =
             pcall(function()
-
                 return getAsset(path)
-
             end)
 
         if success and asset then
@@ -90,7 +80,7 @@ local function downloadImage(url, fileName)
     end
 
     -- -----------------------------------------------------
-    -- HTTP request
+    -- REQUEST
     -- -----------------------------------------------------
 
     local body = nil
@@ -118,16 +108,14 @@ local function downloadImage(url, fileName)
     end
 
     -- -----------------------------------------------------
-    -- HttpGet fallback
+    -- FALLBACK
     -- -----------------------------------------------------
 
     if not body then
 
         local success, result =
             pcall(function()
-
                 return game:HttpGet(url)
-
             end)
 
         if success and result then
@@ -136,14 +124,10 @@ local function downloadImage(url, fileName)
 
     end
 
-    -- -----------------------------------------------------
-    -- Failed
-    -- -----------------------------------------------------
-
     if not body then
 
         warn(
-            "[ShadowToggle] Could not download:",
+            "[ShadowToggle] Image download failed:",
             url
         )
 
@@ -152,10 +136,10 @@ local function downloadImage(url, fileName)
     end
 
     -- -----------------------------------------------------
-    -- Write file
+    -- WRITE
     -- -----------------------------------------------------
 
-    local writeSuccess =
+    local success =
         pcall(function()
 
             writefile(
@@ -165,10 +149,10 @@ local function downloadImage(url, fileName)
 
         end)
 
-    if not writeSuccess then
+    if not success then
 
         warn(
-            "[ShadowToggle] Could not write:",
+            "[ShadowToggle] Cannot write:",
             path
         )
 
@@ -177,16 +161,14 @@ local function downloadImage(url, fileName)
     end
 
     -- -----------------------------------------------------
-    -- Convert to Roblox asset
+    -- ASSET
     -- -----------------------------------------------------
 
     if getAsset then
 
         local success, asset =
             pcall(function()
-
                 return getAsset(path)
-
             end)
 
         if success and asset then
@@ -200,7 +182,7 @@ local function downloadImage(url, fileName)
 end
 
 -- =========================================================
--- LOAD ARCEUS IMAGES
+-- LOAD IMAGES
 -- =========================================================
 
 local visibleAsset =
@@ -234,10 +216,12 @@ if not targetParent then
 end
 
 if not targetParent then
+
     targetParent =
         LocalPlayer:WaitForChild(
             "PlayerGui"
         )
+
 end
 
 -- =========================================================
@@ -246,13 +230,13 @@ end
 
 pcall(function()
 
-    local oldGui =
+    local old =
         targetParent:FindFirstChild(
             "ShadowToggle"
         )
 
-    if oldGui then
-        oldGui:Destroy()
+    if old then
+        old:Destroy()
     end
 
 end)
@@ -321,7 +305,7 @@ local function findArceusX()
 end
 
 -- =========================================================
--- MAIN SCREEN GUI
+-- SCREEN GUI
 -- =========================================================
 
 local shadowGui =
@@ -340,7 +324,7 @@ shadowGui.Parent =
     targetParent
 
 -- =========================================================
--- MAIN SHADOW
+-- SHADOW
 -- =========================================================
 
 local shadow =
@@ -439,14 +423,11 @@ mainCorner.Parent =
     main
 
 -- =========================================================
--- MAIN GRADIENT
+-- GRADIENT
 -- =========================================================
 
 local mainGradient =
     Instance.new("UIGradient")
-
-mainGradient.Name =
-    "Gradient"
 
 mainGradient.Color =
     ColorSequence.new({
@@ -486,14 +467,11 @@ mainGradient.Parent =
     main
 
 -- =========================================================
--- MAIN BORDER
+-- BORDER
 -- =========================================================
 
 local mainBorder =
     Instance.new("UIStroke")
-
-mainBorder.Name =
-    "Border"
 
 mainBorder.ApplyStrokeMode =
     Enum.ApplyStrokeMode.Border
@@ -511,14 +489,11 @@ mainBorder.Parent =
     main
 
 -- =========================================================
--- MAIN GLOW
+-- GLOW
 -- =========================================================
 
 local mainGlow =
     Instance.new("UIStroke")
-
-mainGlow.Name =
-    "Glow"
 
 mainGlow.ApplyStrokeMode =
     Enum.ApplyStrokeMode.Border
@@ -539,19 +514,17 @@ mainGlow.Parent =
     main
 
 -- =========================================================
--- MAIN SCALE
+-- SCALE
 -- =========================================================
 
 local mainScale =
     Instance.new("UIScale")
 
 mainScale.Scale = 1
-
-mainScale.Parent =
-    main
+mainScale.Parent = main
 
 -- =========================================================
--- ARCEUS IMAGE BUTTON
+-- ARCEUS BUTTON
 -- =========================================================
 
 local arceusButton =
@@ -586,14 +559,11 @@ arceusButton.Parent =
     main
 
 -- =========================================================
--- ARCEUS IMAGE CONTAINER
+-- IMAGE CONTAINER
 -- =========================================================
 
 local imageContainer =
     Instance.new("Frame")
-
-imageContainer.Name =
-    "ImageContainer"
 
 imageContainer.AnchorPoint =
     Vector2.new(
@@ -634,7 +604,7 @@ imageContainerCorner.Parent =
     imageContainer
 
 -- =========================================================
--- VISIBLE ARCEUS IMAGE
+-- VISIBLE IMAGE
 -- =========================================================
 
 local visibleImage =
@@ -679,7 +649,7 @@ visibleCorner.Parent =
     visibleImage
 
 -- =========================================================
--- HIDDEN ARCEUS IMAGE
+-- HIDDEN IMAGE
 -- =========================================================
 
 local hiddenImage =
@@ -797,7 +767,7 @@ fullbrightButton.Parent =
     main
 
 -- =========================================================
--- STAR ICON
+-- STAR
 -- =========================================================
 
 local star =
@@ -820,15 +790,16 @@ star.Position =
 
 star.Size =
     UDim2.fromOffset(
-        29,
-        29
+        28,
+        28
     )
 
 star.BackgroundTransparency =
     1
 
+-- OFF = EMPTY STAR
 star.Text =
-    "★"
+    "☆"
 
 star.TextScaled = true
 
@@ -848,45 +819,21 @@ star.Parent =
     fullbrightButton
 
 -- =========================================================
--- STAR OUTLINE
--- =========================================================
-
-local starStroke =
-    Instance.new("UIStroke")
-
-starStroke.Thickness =
-    1.2
-
-starStroke.Color =
-    Color3.fromRGB(
-        15,
-        15,
-        18
-    )
-
-starStroke.Transparency =
-    0.15
-
-starStroke.Parent =
-    star
-
--- =========================================================
--- FULLBRIGHT INDICATOR
+-- STAR NEON GLOW
 -- =========================================================
 
 local starGlow =
     Instance.new("UIStroke")
 
 starGlow.Name =
-    "StarGlow"
+    "NeonGlow"
 
-starGlow.Thickness =
-    0.8
+starGlow.Thickness = 1.5
 
 starGlow.Color =
     Color3.fromRGB(
         0,
-        200,
+        210,
         255
     )
 
@@ -905,33 +852,6 @@ local fullbrightScale =
 fullbrightScale.Scale = 1
 
 fullbrightScale.Parent =
-    fullbrightButton
-
--- =========================================================
--- FULLBRIGHT INTERNAL BORDER
--- =========================================================
-
-local fullbrightBorder =
-    Instance.new("UIStroke")
-
-fullbrightBorder.Name =
-    "FullbrightBorder"
-
-fullbrightBorder.ApplyStrokeMode =
-    Enum.ApplyStrokeMode.Border
-
-fullbrightBorder.Thickness = 1
-
-fullbrightBorder.Transparency = 1
-
-fullbrightBorder.Color =
-    Color3.fromRGB(
-        0,
-        200,
-        255
-    )
-
-fullbrightBorder.Parent =
     fullbrightButton
 
 -- =========================================================
@@ -958,10 +878,19 @@ end)
 local arceusHidden = false
 local fullbrightEnabled = false
 
+-- =========================================================
+-- INPUT STATE
+-- =========================================================
+
 local dragging = false
+
+local dragInput = nil
 local dragStart = nil
 local startPosition = nil
+
 local movedDistance = 0
+
+local inputOwner = nil
 
 -- =========================================================
 -- ORIGINAL LIGHTING
@@ -976,7 +905,7 @@ local originalLighting = {
 }
 
 -- =========================================================
--- LIGHTING FUNCTIONS
+-- LIGHTING
 -- =========================================================
 
 local function saveLighting()
@@ -1096,27 +1025,42 @@ local function updateFullbrightAppearance()
 
     if fullbrightEnabled then
 
+        -- -------------------------------------------------
+        -- FILLED STAR
+        -- -------------------------------------------------
+
+        star.Text =
+            "★"
+
         star.TextColor3 =
             Color3.fromRGB(
-                255,
-                255,
+                0,
+                220,
+                255
+            )
+
+        -- -------------------------------------------------
+        -- NEON
+        -- -------------------------------------------------
+
+        starGlow.Color =
+            Color3.fromRGB(
+                0,
+                220,
                 255
             )
 
         starGlow.Transparency =
-            0
-
-        fullbrightBorder.Color =
-            Color3.fromRGB(
-                0,
-                200,
-                255
-            )
-
-        fullbrightBorder.Transparency =
-            0.55
+            0.05
 
     else
+
+        -- -------------------------------------------------
+        -- EMPTY STAR
+        -- -------------------------------------------------
+
+        star.Text =
+            "☆"
 
         star.TextColor3 =
             Color3.fromRGB(
@@ -1125,10 +1069,11 @@ local function updateFullbrightAppearance()
                 240
             )
 
-        starGlow.Transparency =
-            1
+        -- -------------------------------------------------
+        -- NO NEON
+        -- -------------------------------------------------
 
-        fullbrightBorder.Transparency =
+        starGlow.Transparency =
             1
 
     end
@@ -1139,11 +1084,11 @@ end
 -- CLICK ANIMATION
 -- =========================================================
 
-local function clickAnimation(target)
+local function clickAnimation(targetScale)
 
     local down =
         TweenService:Create(
-            target,
+            targetScale,
             TweenInfo.new(
                 0.06,
                 Enum.EasingStyle.Quad,
@@ -1156,7 +1101,7 @@ local function clickAnimation(target)
 
     local up =
         TweenService:Create(
-            target,
+            targetScale,
             TweenInfo.new(
                 0.11,
                 Enum.EasingStyle.Back,
@@ -1185,7 +1130,7 @@ task.spawn(function()
 
         if not arceusHidden then
 
-            local inTween =
+            local tweenIn =
                 TweenService:Create(
                     mainGlow,
                     TweenInfo.new(
@@ -1198,7 +1143,7 @@ task.spawn(function()
                     }
                 )
 
-            local outTween =
+            local tweenOut =
                 TweenService:Create(
                     mainGlow,
                     TweenInfo.new(
@@ -1211,15 +1156,15 @@ task.spawn(function()
                     }
                 )
 
-            inTween:Play()
-            inTween.Completed:Wait()
+            tweenIn:Play()
+            tweenIn.Completed:Wait()
 
             if arceusHidden then
                 continue
             end
 
-            outTween:Play()
-            outTween.Completed:Wait()
+            tweenOut:Play()
+            tweenOut.Completed:Wait()
 
         else
 
@@ -1232,7 +1177,7 @@ task.spawn(function()
 end)
 
 -- =========================================================
--- FULLBRIGHT STAR PULSE
+-- STAR NEON PULSE
 -- =========================================================
 
 task.spawn(function()
@@ -1241,41 +1186,41 @@ task.spawn(function()
 
         if fullbrightEnabled then
 
-            local inTween =
+            local tweenIn =
                 TweenService:Create(
                     starGlow,
                     TweenInfo.new(
-                        0.9,
+                        0.8,
                         Enum.EasingStyle.Sine,
                         Enum.EasingDirection.InOut
                     ),
                     {
-                        Transparency = 0.15
+                        Transparency = 0.0
                     }
                 )
 
-            local outTween =
+            local tweenOut =
                 TweenService:Create(
                     starGlow,
                     TweenInfo.new(
-                        0.9,
+                        0.8,
                         Enum.EasingStyle.Sine,
                         Enum.EasingDirection.InOut
                     ),
                     {
-                        Transparency = 0.55
+                        Transparency = 0.45
                     }
                 )
 
-            inTween:Play()
-            inTween.Completed:Wait()
+            tweenIn:Play()
+            tweenIn.Completed:Wait()
 
             if not fullbrightEnabled then
                 continue
             end
 
-            outTween:Play()
-            outTween.Completed:Wait()
+            tweenOut:Play()
+            tweenOut.Completed:Wait()
 
         else
 
@@ -1329,135 +1274,80 @@ if not UserInputService.TouchEnabled then
 
     end)
 
-    fullbrightButton.MouseEnter:Connect(function()
+end
 
-        TweenService:Create(
-            fullbrightScale,
-            TweenInfo.new(
-                0.15,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Scale = 1.08
-            }
-        ):Play()
+-- =========================================================
+-- BEGIN DRAG / CLICK DETECTION
+-- =========================================================
 
-    end)
+local function beginInteraction(input, owner)
 
-    fullbrightButton.MouseLeave:Connect(function()
+    if
+        input.UserInputType ~=
+            Enum.UserInputType.MouseButton1
+        and
+        input.UserInputType ~=
+            Enum.UserInputType.Touch
+    then
 
-        TweenService:Create(
-            fullbrightScale,
-            TweenInfo.new(
-                0.15,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Scale = 1
-            }
-        ):Play()
+        return
 
-    end)
+    end
+
+    dragging = true
+
+    dragInput = input
+
+    dragStart =
+        input.Position
+
+    startPosition =
+        main.Position
+
+    movedDistance = 0
+
+    inputOwner = owner
 
 end
 
 -- =========================================================
--- DRAG START
+-- MAIN INTERACTION
 -- =========================================================
 
 main.InputBegan:Connect(function(input)
 
-    if
-        input.UserInputType ==
-            Enum.UserInputType.MouseButton1
-        or
-        input.UserInputType ==
-            Enum.UserInputType.Touch
-    then
-
-        dragging = true
-
-        dragStart =
-            input.Position
-
-        startPosition =
-            main.Position
-
-        movedDistance = 0
-
-    end
+    beginInteraction(
+        input,
+        "main"
+    )
 
 end)
 
 -- =========================================================
--- POSITION CLAMP
+-- ARCEUS INTERACTION
 -- =========================================================
 
-local function clampPosition(x, y)
+arceusButton.InputBegan:Connect(function(input)
 
-    local camera =
-        workspace.CurrentCamera
-
-    if not camera then
-        return x, y
-    end
-
-    local viewport =
-        camera.ViewportSize
-
-    local maxX =
-        viewport.X
-        - UI_WIDTH
-        - EDGE_PADDING
-
-    local maxY =
-        viewport.Y
-        - UI_HEIGHT
-        - EDGE_PADDING
-
-    x = math.clamp(
-        x,
-        EDGE_PADDING,
-        maxX
+    beginInteraction(
+        input,
+        "arceus"
     )
 
-    y = math.clamp(
-        y,
-        EDGE_PADDING,
-        maxY
+end)
+
+-- =========================================================
+-- FULLBRIGHT INTERACTION
+-- =========================================================
+
+fullbrightButton.InputBegan:Connect(function(input)
+
+    beginInteraction(
+        input,
+        "fullbright"
     )
 
-    return x, y
-
-end
-
--- =========================================================
--- UPDATE POSITION
--- =========================================================
-
-local function updatePosition(x, y)
-
-    x, y =
-        clampPosition(
-            x,
-            y
-        )
-
-    main.Position =
-        UDim2.fromOffset(
-            x,
-            y
-        )
-
-    shadow.Position =
-        UDim2.fromOffset(
-            x + 3,
-            y + 3
-        )
-
-end
+end)
 
 -- =========================================================
 -- DRAG MOVEMENT
@@ -1469,46 +1359,87 @@ UserInputService.InputChanged:Connect(function(input)
         return
     end
 
+    local movementInput = input
+
     if
-        input.UserInputType ~=
+        input.UserInputType ==
             Enum.UserInputType.MouseMovement
-        and
-        input.UserInputType ~=
+        or
+        input.UserInputType ==
             Enum.UserInputType.Touch
     then
 
-        return
+        local delta =
+            movementInput.Position
+            - dragStart
+
+        movedDistance =
+            math.max(
+                movedDistance,
+                math.abs(delta.X)
+                    + math.abs(delta.Y)
+            )
+
+        local newX =
+            startPosition.X.Offset
+            + delta.X
+
+        local newY =
+            startPosition.Y.Offset
+            + delta.Y
+
+        local camera =
+            workspace.CurrentCamera
+
+        if not camera then
+            return
+        end
+
+        local viewport =
+            camera.ViewportSize
+
+        local maxX =
+            viewport.X
+            - UI_WIDTH
+            - EDGE_PADDING
+
+        local maxY =
+            viewport.Y
+            - UI_HEIGHT
+            - EDGE_PADDING
+
+        newX =
+            math.clamp(
+                newX,
+                EDGE_PADDING,
+                maxX
+            )
+
+        newY =
+            math.clamp(
+                newY,
+                EDGE_PADDING,
+                maxY
+            )
+
+        main.Position =
+            UDim2.fromOffset(
+                newX,
+                newY
+            )
+
+        shadow.Position =
+            UDim2.fromOffset(
+                newX + 3,
+                newY + 3
+            )
 
     end
-
-    local delta =
-        input.Position
-        - dragStart
-
-    movedDistance =
-        math.max(
-            movedDistance,
-            math.abs(delta.X)
-                + math.abs(delta.Y)
-        )
-
-    local newX =
-        startPosition.X.Offset
-        + delta.X
-
-    local newY =
-        startPosition.Y.Offset
-        + delta.Y
-
-    updatePosition(
-        newX,
-        newY
-    )
 
 end)
 
 -- =========================================================
--- INPUT ENDED
+-- END INTERACTION
 -- =========================================================
 
 UserInputService.InputEnded:Connect(function(input)
@@ -1531,81 +1462,141 @@ UserInputService.InputEnded:Connect(function(input)
 
     dragging = false
 
-    -- -----------------------------------------------------
-    -- CLICK ON ARCEUS IMAGE
-    -- -----------------------------------------------------
+    -- =====================================================
+    -- CLICK
+    -- =====================================================
 
     if movedDistance <
         DRAG_THRESHOLD then
 
-        clickAnimation(
-            mainScale
-        )
+        -- -------------------------------------------------
+        -- ARCEUS CLICK
+        -- -------------------------------------------------
 
-        arceusHidden =
-            not arceusHidden
+        if inputOwner == "arceus"
+            or inputOwner == "main"
+        then
 
-        local arceusGui =
-            findArceusX()
+            clickAnimation(
+                mainScale
+            )
 
-        if arceusGui then
-
-            arceusGui.Enabled =
+            arceusHidden =
                 not arceusHidden
 
-        else
+            local arceusGui =
+                findArceusX()
 
-            warn(
-                "[ShadowToggle] Arceus X GUI not found."
-            )
+            if arceusGui then
+
+                arceusGui.Enabled =
+                    not arceusHidden
+
+            else
+
+                warn(
+                    "[ShadowToggle] Arceus X GUI not found."
+                )
+
+            end
+
+            updateArceusAppearance()
 
         end
 
-        updateArceusAppearance()
+        -- -------------------------------------------------
+        -- FULLBRIGHT CLICK
+        -- -------------------------------------------------
+
+        if inputOwner == "fullbright" then
+
+            clickAnimation(
+                fullbrightScale
+            )
+
+            fullbrightEnabled =
+                not fullbrightEnabled
+
+            if fullbrightEnabled then
+
+                enableFullbright()
+
+            else
+
+                disableFullbright()
+
+            end
+
+            updateFullbrightAppearance()
+
+        end
 
     end
+
+    inputOwner = nil
+    dragInput = nil
 
 end)
 
 -- =========================================================
--- FULLBRIGHT CLICK
--- =========================================================
-
-fullbrightButton.Activated:Connect(function()
-
-    clickAnimation(
-        fullbrightScale
-    )
-
-    fullbrightEnabled =
-        not fullbrightEnabled
-
-    if fullbrightEnabled then
-
-        enableFullbright()
-
-    else
-
-        disableFullbright()
-
-    end
-
-    updateFullbrightAppearance()
-
-end)
-
--- =========================================================
--- VIEWPORT CHANGE
+-- VIEWPORT
 -- =========================================================
 
 workspace.CurrentCamera:GetPropertyChangedSignal(
     "ViewportSize"
 ):Connect(function()
 
-    updatePosition(
-        main.Position.X.Offset,
+    local camera =
+        workspace.CurrentCamera
+
+    if not camera then
+        return
+    end
+
+    local viewport =
+        camera.ViewportSize
+
+    local x =
+        main.Position.X.Offset
+
+    local y =
         main.Position.Y.Offset
-    )
+
+    local maxX =
+        viewport.X
+        - UI_WIDTH
+        - EDGE_PADDING
+
+    local maxY =
+        viewport.Y
+        - UI_HEIGHT
+        - EDGE_PADDING
+
+    x =
+        math.clamp(
+            x,
+            EDGE_PADDING,
+            maxX
+        )
+
+    y =
+        math.clamp(
+            y,
+            EDGE_PADDING,
+            maxY
+        )
+
+    main.Position =
+        UDim2.fromOffset(
+            x,
+            y
+        )
+
+    shadow.Position =
+        UDim2.fromOffset(
+            x + 3,
+            y + 3
+        )
 
 end)
 
@@ -1613,14 +1604,21 @@ end)
 -- INITIALIZE
 -- =========================================================
 
-updatePosition(
-    START_X,
-    START_Y
-)
+main.Position =
+    UDim2.fromOffset(
+        START_X,
+        START_Y
+    )
+
+shadow.Position =
+    UDim2.fromOffset(
+        START_X + 3,
+        START_Y + 3
+    )
 
 updateArceusAppearance()
 updateFullbrightAppearance()
 
 print(
-    "[ShadowToggle] Loaded."
+    "[ShadowToggle] Loaded successfully."
 )
