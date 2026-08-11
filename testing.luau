@@ -32,13 +32,8 @@ local DRAG_THRESHOLD = 8
 local MAIN_X = 20
 local MAIN_Y = 100
 
-local FULLBRIGHT_X = 80
-local FULLBRIGHT_Y = 104
-
-local GAP = 6
-
 -- =========================================================
--- HTTP / FILE FUNCTIONS
+-- HTTP / ASSET FUNCTIONS
 -- =========================================================
 
 local httpRequest =
@@ -46,61 +41,134 @@ local httpRequest =
     or http_request
     or (syn and syn.request)
 
+local getAsset =
+    getcustomasset
+    or getsynasset
+
 local function downloadImage(url, fileName)
 
-    if not httpRequest then
-        return nil
-    end
-
     if not isfolder(FOLDER) then
-
         pcall(function()
             makefolder(FOLDER)
         end)
-
     end
 
-    local path = FOLDER .. "/" .. fileName
+    local path =
+        FOLDER .. "/" .. fileName
 
-    if isfile(path) then
+    -- -----------------------------------------------------
+    -- Cached asset
+    -- -----------------------------------------------------
 
-        local success, asset = pcall(function()
-            return getcustomasset(path)
-        end)
+    if isfile(path) and getAsset then
 
-        if success then
+        local success, asset =
+            pcall(function()
+                return getAsset(path)
+            end)
+
+        if success and asset then
             return asset
         end
 
     end
 
-    local success, response = pcall(function()
+    -- -----------------------------------------------------
+    -- HTTP request
+    -- -----------------------------------------------------
 
-        return httpRequest({
-            Url = url,
-            Method = "GET"
-        })
+    local body = nil
 
-    end)
+    if httpRequest then
 
-    if not success
-        or not response
-        or not response.Body then
+        local success, response =
+            pcall(function()
+
+                return httpRequest({
+                    Url = url,
+                    Method = "GET"
+                })
+
+            end)
+
+        if success
+            and response
+            and response.Body then
+
+            body = response.Body
+
+        end
+
+    end
+
+    -- -----------------------------------------------------
+    -- HttpGet fallback
+    -- -----------------------------------------------------
+
+    if not body then
+
+        local success, result =
+            pcall(function()
+                return game:HttpGet(url)
+            end)
+
+        if success and result then
+            body = result
+        end
+
+    end
+
+    if not body then
+
+        warn(
+            "[Shadow Toggle] Image download failed:",
+            url
+        )
 
         return nil
 
     end
 
-    pcall(function()
-        writefile(path, response.Body)
-    end)
+    -- -----------------------------------------------------
+    -- Write
+    -- -----------------------------------------------------
 
-    local assetSuccess, asset = pcall(function()
-        return getcustomasset(path)
-    end)
+    local writeSuccess =
+        pcall(function()
 
-    if assetSuccess then
-        return asset
+            writefile(
+                path,
+                body
+            )
+
+        end)
+
+    if not writeSuccess then
+
+        warn(
+            "[Shadow Toggle] Could not write:",
+            path
+        )
+
+        return nil
+
+    end
+
+    -- -----------------------------------------------------
+    -- Convert to Roblox asset
+    -- -----------------------------------------------------
+
+    if getAsset then
+
+        local success, asset =
+            pcall(function()
+                return getAsset(path)
+            end)
+
+        if success and asset then
+            return asset
+        end
+
     end
 
     return nil
@@ -131,38 +199,102 @@ local targetParent
 
 pcall(function()
 
-    targetParent =
-        (gethui and gethui())
-        or game:GetService("CoreGui")
+    if gethui then
+        targetParent = gethui()
+    end
 
 end)
 
 if not targetParent then
+    targetParent = game:GetService("CoreGui")
+end
 
-    targetParent =
-        LocalPlayer:WaitForChild("PlayerGui")
-
+if not targetParent then
+    targetParent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
 -- =========================================================
--- REMOVE OLD GUI
+-- REMOVE PREVIOUS UI
 -- =========================================================
 
 pcall(function()
 
-    local oldGui =
+    local old =
         targetParent:FindFirstChild(
             "ShadowVisibilityFullbrightToggle"
         )
 
-    if oldGui then
-        oldGui:Destroy()
+    if old then
+        old:Destroy()
     end
 
 end)
 
 -- =========================================================
--- GUI
+-- FIND ARCEUS X
+-- =========================================================
+
+local function findArceusX()
+
+    local parents = {
+        targetParent,
+        game:GetService("CoreGui"),
+        LocalPlayer:FindFirstChildOfClass(
+            "PlayerGui"
+        )
+    }
+
+    for _, parent in ipairs(parents) do
+
+        if parent then
+
+            for _, child in ipairs(
+                parent:GetChildren()
+            ) do
+
+                if child:IsA("ScreenGui") then
+
+                    local name =
+                        string.lower(
+                            child.Name
+                        )
+
+                    if
+                        name == "arceusx"
+                        or name == "arceus x"
+                        or name == "arceus"
+                        or string.find(
+                            name,
+                            "arceusx",
+                            1,
+                            true
+                        )
+                        or string.find(
+                            name,
+                            "arceus x",
+                            1,
+                            true
+                        )
+                    then
+
+                        return child
+
+                    end
+
+                end
+
+            end
+
+        end
+
+    end
+
+    return nil
+
+end
+
+-- =========================================================
+-- SCREEN GUI
 -- =========================================================
 
 local toggleGui =
@@ -206,7 +338,6 @@ mainShadow.BackgroundColor3 =
 mainShadow.BackgroundTransparency = 0.45
 
 mainShadow.ZIndex = 1
-
 mainShadow.Parent = toggleGui
 
 local mainShadowCorner =
@@ -217,47 +348,6 @@ mainShadowCorner.CornerRadius =
 
 mainShadowCorner.Parent =
     mainShadow
-
--- =========================================================
--- FULLBRIGHT SHADOW
--- =========================================================
-
-local fullbrightShadow =
-    Instance.new("Frame")
-
-fullbrightShadow.Name =
-    "FullbrightShadow"
-
-fullbrightShadow.Size =
-    UDim2.fromOffset(
-        FULLBRIGHT_SIZE + 8,
-        FULLBRIGHT_SIZE + 8
-    )
-
-fullbrightShadow.Position =
-    UDim2.fromOffset(
-        FULLBRIGHT_X + 3,
-        FULLBRIGHT_Y + 3
-    )
-
-fullbrightShadow.BackgroundColor3 =
-    Color3.fromRGB(0, 0, 0)
-
-fullbrightShadow.BackgroundTransparency =
-    0.45
-
-fullbrightShadow.ZIndex = 1
-
-fullbrightShadow.Parent = toggleGui
-
-local fullbrightShadowCorner =
-    Instance.new("UICorner")
-
-fullbrightShadowCorner.CornerRadius =
-    UDim.new(0, 15)
-
-fullbrightShadowCorner.Parent =
-    fullbrightShadow
 
 -- =========================================================
 -- MAIN BUTTON
@@ -282,12 +372,14 @@ button.Position =
     )
 
 button.BackgroundColor3 =
-    Color3.fromRGB(12, 12, 16)
+    Color3.fromRGB(
+        12,
+        12,
+        16
+    )
 
 button.BackgroundTransparency = 0
-
 button.Image = ""
-
 button.AutoButtonColor = false
 button.Active = true
 
@@ -338,11 +430,10 @@ gradient.Color =
     })
 
 gradient.Rotation = 45
-
 gradient.Parent = button
 
 -- =========================================================
--- MAIN IMAGE CONTAINER
+-- IMAGE CONTAINER
 -- =========================================================
 
 local imageContainer =
@@ -367,7 +458,6 @@ imageContainer.Size =
     )
 
 imageContainer.BackgroundTransparency = 1
-
 imageContainer.ZIndex = 11
 imageContainer.Parent = button
 
@@ -393,6 +483,9 @@ visibleImage.Name =
 visibleImage.Size =
     UDim2.fromScale(1, 1)
 
+visibleImage.Position =
+    UDim2.fromScale(0, 0)
+
 visibleImage.BackgroundTransparency = 1
 
 visibleImage.Image =
@@ -400,6 +493,9 @@ visibleImage.Image =
 
 visibleImage.ScaleType =
     Enum.ScaleType.Fit
+
+visibleImage.Visible =
+    visibleAsset ~= nil
 
 visibleImage.ZIndex = 12
 visibleImage.Parent =
@@ -426,6 +522,9 @@ hiddenImage.Name =
 
 hiddenImage.Size =
     UDim2.fromScale(1, 1)
+
+hiddenImage.Position =
+    UDim2.fromScale(0, 0)
 
 hiddenImage.BackgroundTransparency = 1
 
@@ -510,6 +609,47 @@ scale.Scale = 1
 scale.Parent = button
 
 -- =========================================================
+-- FULLBRIGHT SHADOW
+-- =========================================================
+
+local fullbrightShadow =
+    Instance.new("Frame")
+
+fullbrightShadow.Name =
+    "FullbrightShadow"
+
+fullbrightShadow.Size =
+    UDim2.fromOffset(
+        FULLBRIGHT_SIZE + 8,
+        FULLBRIGHT_SIZE + 8
+    )
+
+fullbrightShadow.Position =
+    UDim2.fromOffset(
+        MAIN_X + BUTTON_SIZE + 3,
+        MAIN_Y + 7
+    )
+
+fullbrightShadow.BackgroundColor3 =
+    Color3.fromRGB(0, 0, 0)
+
+fullbrightShadow.BackgroundTransparency =
+    0.45
+
+fullbrightShadow.ZIndex = 1
+fullbrightShadow.Parent =
+    toggleGui
+
+local fullbrightShadowCorner =
+    Instance.new("UICorner")
+
+fullbrightShadowCorner.CornerRadius =
+    UDim.new(0, 15)
+
+fullbrightShadowCorner.Parent =
+    fullbrightShadow
+
+-- =========================================================
 -- FULLBRIGHT BUTTON
 -- =========================================================
 
@@ -527,8 +667,8 @@ fullbrightButton.Size =
 
 fullbrightButton.Position =
     UDim2.fromOffset(
-        FULLBRIGHT_X,
-        FULLBRIGHT_Y
+        MAIN_X + BUTTON_SIZE,
+        MAIN_Y + 4
     )
 
 fullbrightButton.BackgroundColor3 =
@@ -539,9 +679,7 @@ fullbrightButton.BackgroundColor3 =
     )
 
 fullbrightButton.BackgroundTransparency = 0
-
 fullbrightButton.Image = ""
-
 fullbrightButton.AutoButtonColor = false
 fullbrightButton.Active = true
 
@@ -569,7 +707,7 @@ local fullbrightGradient =
     Instance.new("UIGradient")
 
 fullbrightGradient.Name =
-    "FullbrightGradient"
+    "InnerGradient"
 
 fullbrightGradient.Color =
     ColorSequence.new({
@@ -592,177 +730,254 @@ fullbrightGradient.Color =
     })
 
 fullbrightGradient.Rotation = 45
-
 fullbrightGradient.Parent =
     fullbrightButton
 
 -- =========================================================
--- FULLBRIGHT ICON CONTAINER
+-- LAMP CONTAINER
 -- =========================================================
 
-local iconContainer =
+local lampContainer =
     Instance.new("Frame")
 
-iconContainer.Name =
-    "IconContainer"
+lampContainer.Name =
+    "LampContainer"
 
-iconContainer.AnchorPoint =
+lampContainer.AnchorPoint =
     Vector2.new(0.5, 0.5)
 
-iconContainer.Position =
+lampContainer.Position =
     UDim2.fromScale(
         0.5,
         0.5
     )
 
-iconContainer.Size =
+lampContainer.Size =
     UDim2.fromOffset(
-        30,
-        30
+        28,
+        28
     )
 
-iconContainer.BackgroundTransparency = 1
-
-iconContainer.ClipsDescendants = true
-
-iconContainer.ZIndex = 11
-iconContainer.Parent =
+lampContainer.BackgroundTransparency = 1
+lampContainer.ZIndex = 11
+lampContainer.Parent =
     fullbrightButton
 
-local iconCorner =
-    Instance.new("UICorner")
-
-iconCorner.CornerRadius =
-    UDim.new(0, 9)
-
-iconCorner.Parent =
-    iconContainer
-
 -- =========================================================
--- FULLBRIGHT FILL
+-- LAMP SHADE
 -- =========================================================
 
-local fullbrightFill =
+local lampShade =
     Instance.new("Frame")
 
-fullbrightFill.Name =
-    "Fill"
+lampShade.Name =
+    "Shade"
 
-fullbrightFill.AnchorPoint =
-    Vector2.new(0.5, 1)
+lampShade.AnchorPoint =
+    Vector2.new(0.5, 0)
 
-fullbrightFill.Position =
+lampShade.Position =
     UDim2.fromScale(
         0.5,
-        1
+        0.08
     )
 
-fullbrightFill.Size =
-    UDim2.fromScale(
-        1,
-        0
+lampShade.Size =
+    UDim2.fromOffset(
+        18,
+        11
     )
 
-fullbrightFill.BackgroundColor3 =
+lampShade.BackgroundColor3 =
     Color3.fromRGB(
-        0,
-        200,
-        255
+        245,
+        245,
+        245
     )
 
-fullbrightFill.BackgroundTransparency =
-    0.10
+lampShade.BorderSizePixel = 0
+lampShade.ZIndex = 12
+lampShade.Parent =
+    lampContainer
 
-fullbrightFill.BorderSizePixel = 0
+local lampShadeCorner =
+    Instance.new("UICorner")
 
-fullbrightFill.ZIndex = 11
+lampShadeCorner.CornerRadius =
+    UDim.new(0, 7)
 
-fullbrightFill.Parent =
-    iconContainer
-
-local fillGradient =
-    Instance.new("UIGradient")
-
-fillGradient.Color =
-    ColorSequence.new({
-
-        ColorSequenceKeypoint.new(
-            0,
-            Color3.fromRGB(
-                0,
-                120,
-                255
-            )
-        ),
-
-        ColorSequenceKeypoint.new(
-            0.5,
-            Color3.fromRGB(
-                0,
-                220,
-                255
-            )
-        ),
-
-        ColorSequenceKeypoint.new(
-            1,
-            Color3.fromRGB(
-                0,
-                150,
-                255
-            )
-        )
-
-    })
-
-fillGradient.Rotation = 90
-fillGradient.Parent = fullbrightFill
+lampShadeCorner.Parent =
+    lampShade
 
 -- =========================================================
--- SUN ICON
+-- BLACK SHADE OUTLINE
 -- =========================================================
 
-local sunIcon =
-    Instance.new("TextLabel")
+local lampShadeStroke =
+    Instance.new("UIStroke")
 
-sunIcon.Name =
-    "SunIcon"
+lampShadeStroke.Thickness = 1.5
+lampShadeStroke.Color =
+    Color3.fromRGB(
+        25,
+        25,
+        25
+    )
 
-sunIcon.AnchorPoint =
+lampShadeStroke.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
+
+lampShadeStroke.Parent =
+    lampShade
+
+-- =========================================================
+-- LAMP BASE / STEM
+-- =========================================================
+
+local lampStem =
+    Instance.new("Frame")
+
+lampStem.Name =
+    "Stem"
+
+lampStem.AnchorPoint =
+    Vector2.new(0.5, 0)
+
+lampStem.Position =
+    UDim2.fromScale(
+        0.5,
+        0.47
+    )
+
+lampStem.Size =
+    UDim2.fromOffset(
+        3,
+        6
+    )
+
+lampStem.BackgroundColor3 =
+    Color3.fromRGB(
+        245,
+        245,
+        245
+    )
+
+lampStem.BorderSizePixel = 0
+lampStem.ZIndex = 12
+lampStem.Parent =
+    lampContainer
+
+local lampStemCorner =
+    Instance.new("UICorner")
+
+lampStemCorner.CornerRadius =
+    UDim.new(1, 0)
+
+lampStemCorner.Parent =
+    lampStem
+
+-- =========================================================
+-- LAMP BASE
+-- =========================================================
+
+local lampBase =
+    Instance.new("Frame")
+
+lampBase.Name =
+    "Base"
+
+lampBase.AnchorPoint =
+    Vector2.new(0.5, 0)
+
+lampBase.Position =
+    UDim2.fromScale(
+        0.5,
+        0.70
+    )
+
+lampBase.Size =
+    UDim2.fromOffset(
+        12,
+        3
+    )
+
+lampBase.BackgroundColor3 =
+    Color3.fromRGB(
+        245,
+        245,
+        245
+    )
+
+lampBase.BorderSizePixel = 0
+lampBase.ZIndex = 12
+lampBase.Parent =
+    lampContainer
+
+local lampBaseCorner =
+    Instance.new("UICorner")
+
+lampBaseCorner.CornerRadius =
+    UDim.new(1, 0)
+
+lampBaseCorner.Parent =
+    lampBase
+
+-- =========================================================
+-- LAMP BLACK DETAILS
+-- =========================================================
+
+local lampDetail =
+    Instance.new("Frame")
+
+lampDetail.Name =
+    "Detail"
+
+lampDetail.AnchorPoint =
     Vector2.new(0.5, 0.5)
 
-sunIcon.Position =
+lampDetail.Position =
     UDim2.fromScale(
         0.5,
-        0.5
+        0.38
     )
 
-sunIcon.Size =
-    UDim2.fromScale(
-        1,
+lampDetail.Size =
+    UDim2.fromOffset(
+        9,
         1
     )
 
-sunIcon.BackgroundTransparency = 1
-
-sunIcon.Text = "☀"
-
-sunIcon.TextColor3 =
+lampDetail.BackgroundColor3 =
     Color3.fromRGB(
-        235,
-        235,
-        240
+        25,
+        25,
+        25
     )
 
-sunIcon.TextScaled = true
+lampDetail.BorderSizePixel = 0
+lampDetail.ZIndex = 13
+lampDetail.Parent =
+    lampContainer
 
-sunIcon.Font =
-    Enum.Font.GothamBold
+local lampDetailCorner =
+    Instance.new("UICorner")
 
-sunIcon.ZIndex = 12
+lampDetailCorner.CornerRadius =
+    UDim.new(1, 0)
 
-sunIcon.Parent =
-    iconContainer
+lampDetailCorner.Parent =
+    lampDetail
+
+-- =========================================================
+-- LAMP SCALE
+-- =========================================================
+
+local fullbrightScale =
+    Instance.new("UIScale")
+
+fullbrightScale.Scale = 1
+fullbrightScale.Parent =
+    fullbrightButton
 
 -- =========================================================
 -- FULLBRIGHT BORDER
@@ -817,18 +1032,6 @@ fullbrightGlow.Parent =
     fullbrightButton
 
 -- =========================================================
--- FULLBRIGHT SCALE
--- =========================================================
-
-local fullbrightScale =
-    Instance.new("UIScale")
-
-fullbrightScale.Scale = 1
-
-fullbrightScale.Parent =
-    fullbrightButton
-
--- =========================================================
 -- PRELOAD
 -- =========================================================
 
@@ -846,7 +1049,7 @@ task.spawn(function()
 end)
 
 -- =========================================================
--- STATE
+-- STATES
 -- =========================================================
 
 local hidden = false
@@ -855,20 +1058,10 @@ local fullbright = false
 local dragging = false
 local dragStart = nil
 local startPosition = nil
-
 local movedDistance = 0
 
-local fullbrightDragging = false
-local fullbrightDragStart = nil
-local fullbrightStartPosition = nil
-
-local fullbrightMovedDistance = 0
-
-local hover = false
-local fullbrightHover = false
-
 -- =========================================================
--- SAVE ORIGINAL LIGHTING
+-- ORIGINAL LIGHTING
 -- =========================================================
 
 local originalLighting = {
@@ -880,7 +1073,7 @@ local originalLighting = {
 }
 
 -- =========================================================
--- FULLBRIGHT FUNCTIONS
+-- LIGHTING FUNCTIONS
 -- =========================================================
 
 local function saveLighting()
@@ -939,117 +1132,7 @@ local function disableFullbright()
 end
 
 -- =========================================================
--- FULLBRIGHT VISUAL STATE
--- =========================================================
-
-local function updateFullbrightAppearance()
-
-    if fullbright then
-
-        fullbrightBorder.Color =
-            Color3.fromRGB(
-                0,
-                200,
-                255
-            )
-
-        fullbrightBorder.Thickness = 2
-
-        fullbrightGlow.Color =
-            Color3.fromRGB(
-                0,
-                200,
-                255
-            )
-
-        fullbrightGlow.Thickness = 5
-        fullbrightGlow.Transparency = 0.65
-
-        TweenService:Create(
-            fullbrightFill,
-            TweenInfo.new(
-                0.20,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size =
-                    UDim2.fromScale(
-                        1,
-                        1
-                    )
-            }
-        ):Play()
-
-        TweenService:Create(
-            sunIcon,
-            TweenInfo.new(
-                0.18,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                TextColor3 =
-                    Color3.fromRGB(
-                        255,
-                        255,
-                        255
-                    )
-            }
-        ):Play()
-
-    else
-
-        fullbrightBorder.Color =
-            Color3.fromRGB(
-                255,
-                255,
-                255
-            )
-
-        fullbrightBorder.Thickness = 2
-
-        fullbrightGlow.Transparency = 1
-
-        TweenService:Create(
-            fullbrightFill,
-            TweenInfo.new(
-                0.20,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size =
-                    UDim2.fromScale(
-                        1,
-                        0
-                    )
-            }
-        ):Play()
-
-        TweenService:Create(
-            sunIcon,
-            TweenInfo.new(
-                0.18,
-                Enum.EasingStyle.Quad,
-                Enum.EasingDirection.Out
-            ),
-            {
-                TextColor3 =
-                    Color3.fromRGB(
-                        235,
-                        235,
-                        240
-                    )
-            }
-        ):Play()
-
-    end
-
-end
-
--- =========================================================
--- MAIN VISUAL STATE
+-- MAIN APPEARANCE
 -- =========================================================
 
 local function updateAppearance()
@@ -1057,7 +1140,8 @@ local function updateAppearance()
     if hidden then
 
         visibleImage.Visible = false
-        hiddenImage.Visible = true
+        hiddenImage.Visible =
+            hiddenAsset ~= nil
 
         border.Color =
             Color3.fromRGB(
@@ -1067,12 +1151,13 @@ local function updateAppearance()
             )
 
         border.Thickness = 2
-
         glow.Transparency = 1
 
     else
 
-        visibleImage.Visible = true
+        visibleImage.Visible =
+            visibleAsset ~= nil
+
         hiddenImage.Visible = false
 
         border.Color =
@@ -1099,12 +1184,114 @@ local function updateAppearance()
 end
 
 -- =========================================================
--- ANIMATION
+-- FULLBRIGHT APPEARANCE
+-- =========================================================
+
+local function updateFullbrightAppearance()
+
+    local onColor =
+        Color3.fromRGB(
+            0,
+            200,
+            255
+        )
+
+    local offColor =
+        Color3.fromRGB(
+            245,
+            245,
+            245
+        )
+
+    if fullbright then
+
+        fullbrightBorder.Color = onColor
+        fullbrightGlow.Color = onColor
+        fullbrightGlow.Transparency = 0.65
+
+        -- White lamp
+        lampShade.BackgroundColor3 =
+            Color3.fromRGB(
+                255,
+                255,
+                255
+            )
+
+        lampStem.BackgroundColor3 =
+            Color3.fromRGB(
+                255,
+                255,
+                255
+            )
+
+        lampBase.BackgroundColor3 =
+            Color3.fromRGB(
+                255,
+                255,
+                255
+            )
+
+        TweenService:Create(
+            lampDetail,
+            TweenInfo.new(
+                0.15,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                BackgroundColor3 = onColor
+            }
+        ):Play()
+
+    else
+
+        fullbrightBorder.Color =
+            Color3.fromRGB(
+                255,
+                255,
+                255
+            )
+
+        fullbrightGlow.Transparency = 1
+
+        -- White / black minimal lamp
+        lampShade.BackgroundColor3 =
+            offColor
+
+        lampStem.BackgroundColor3 =
+            offColor
+
+        lampBase.BackgroundColor3 =
+            offColor
+
+        TweenService:Create(
+            lampDetail,
+            TweenInfo.new(
+                0.15,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                BackgroundColor3 =
+                    Color3.fromRGB(
+                        25,
+                        25,
+                        25
+                    )
+            }
+        ):Play()
+
+    end
+
+end
+
+-- =========================================================
+-- CLICK ANIMATION
 -- =========================================================
 
 local function clickAnimation(targetScale)
 
-    local downTween =
+    local down =
         TweenService:Create(
             targetScale,
             TweenInfo.new(
@@ -1117,7 +1304,7 @@ local function clickAnimation(targetScale)
             }
         )
 
-    local upTween =
+    local up =
         TweenService:Create(
             targetScale,
             TweenInfo.new(
@@ -1130,10 +1317,10 @@ local function clickAnimation(targetScale)
             }
         )
 
-    downTween:Play()
+    down:Play()
 
-    downTween.Completed:Once(function()
-        upTween:Play()
+    down.Completed:Once(function()
+        up:Play()
     end)
 
 end
@@ -1208,7 +1395,7 @@ task.spawn(function()
                 TweenService:Create(
                     fullbrightGlow,
                     TweenInfo.new(
-                        1.0,
+                        1,
                         Enum.EasingStyle.Sine,
                         Enum.EasingDirection.InOut
                     ),
@@ -1221,7 +1408,7 @@ task.spawn(function()
                 TweenService:Create(
                     fullbrightGlow,
                     TweenInfo.new(
-                        1.0,
+                        1,
                         Enum.EasingStyle.Sine,
                         Enum.EasingDirection.InOut
                     ),
@@ -1258,8 +1445,6 @@ if not UserInputService.TouchEnabled then
 
     button.MouseEnter:Connect(function()
 
-        hover = true
-
         TweenService:Create(
             scale,
             TweenInfo.new(
@@ -1275,8 +1460,6 @@ if not UserInputService.TouchEnabled then
     end)
 
     button.MouseLeave:Connect(function()
-
-        hover = false
 
         if not dragging then
 
@@ -1298,8 +1481,6 @@ if not UserInputService.TouchEnabled then
 
     fullbrightButton.MouseEnter:Connect(function()
 
-        fullbrightHover = true
-
         TweenService:Create(
             fullbrightScale,
             TweenInfo.new(
@@ -1316,23 +1497,17 @@ if not UserInputService.TouchEnabled then
 
     fullbrightButton.MouseLeave:Connect(function()
 
-        fullbrightHover = false
-
-        if not fullbrightDragging then
-
-            TweenService:Create(
-                fullbrightScale,
-                TweenInfo.new(
-                    0.15,
-                    Enum.EasingStyle.Quad,
-                    Enum.EasingDirection.Out
-                ),
-                {
-                    Scale = 1
-                }
-            ):Play()
-
-        end
+        TweenService:Create(
+            fullbrightScale,
+            TweenInfo.new(
+                0.15,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Scale = 1
+            }
+        ):Play()
 
     end)
 
@@ -1344,45 +1519,18 @@ end
 
 button.InputBegan:Connect(function(input)
 
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
+    if
+        input.UserInputType ==
+            Enum.UserInputType.MouseButton1
+        or
+        input.UserInputType ==
+            Enum.UserInputType.Touch
+    then
 
         dragging = true
-
-        dragStart =
-            input.Position
-
-        startPosition =
-            button.Position
-
+        dragStart = input.Position
+        startPosition = button.Position
         movedDistance = 0
-
-    end
-
-end)
-
--- =========================================================
--- FULLBRIGHT DRAG START
--- =========================================================
-
-fullbrightButton.InputBegan:Connect(function(input)
-
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1
-        or input.UserInputType ==
-        Enum.UserInputType.Touch then
-
-        fullbrightDragging = true
-
-        fullbrightDragStart =
-            input.Position
-
-        fullbrightStartPosition =
-            fullbrightButton.Position
-
-        fullbrightMovedDistance = 0
 
     end
 
@@ -1392,14 +1540,19 @@ end)
 -- POSITION CLAMP
 -- =========================================================
 
-local function clampMainPosition(x, y)
+local function clampPosition(x, y)
 
     local viewport =
         workspace.CurrentCamera.ViewportSize
 
+    -- Full group width
+    local groupWidth =
+        BUTTON_SIZE
+        + FULLBRIGHT_SIZE
+
     local maxX =
         viewport.X
-        - BUTTON_SIZE
+        - groupWidth
         - EDGE_PADDING
 
     local maxY =
@@ -1424,302 +1577,20 @@ local function clampMainPosition(x, y)
 end
 
 -- =========================================================
--- FULL POSITION CLAMP
+-- UPDATE GROUP POSITION
 -- =========================================================
 
-local function clampFullbrightPosition(x, y)
-
-    local viewport =
-        workspace.CurrentCamera.ViewportSize
-
-    local maxX =
-        viewport.X
-        - FULLBRIGHT_SIZE
-        - EDGE_PADDING
-
-    local maxY =
-        viewport.Y
-        - FULLBRIGHT_SIZE
-        - EDGE_PADDING
-
-    x = math.clamp(
-        x,
-        EDGE_PADDING,
-        maxX
-    )
-
-    y = math.clamp(
-        y,
-        EDGE_PADDING,
-        maxY
-    )
-
-    return x, y
-
-end
-
--- =========================================================
--- DRAG MOVEMENT
--- =========================================================
-
-UserInputService.InputChanged:Connect(function(input)
-
-    -- =====================================================
-    -- MAIN
-    -- =====================================================
-
-    if dragging then
-
-        if input.UserInputType ~=
-            Enum.UserInputType.MouseMovement
-            and input.UserInputType ~=
-            Enum.UserInputType.Touch then
-
-            -- Continue below for fullbright
-        else
-
-            local delta =
-                input.Position
-                - dragStart
-
-            movedDistance =
-                math.max(
-                    movedDistance,
-                    math.abs(delta.X)
-                    + math.abs(delta.Y)
-                )
-
-            local newX =
-                startPosition.X.Offset
-                + delta.X
-
-            local newY =
-                startPosition.Y.Offset
-                + delta.Y
-
-            newX, newY =
-                clampMainPosition(
-                    newX,
-                    newY
-                )
-
-            button.Position =
-                UDim2.fromOffset(
-                    newX,
-                    newY
-                )
-
-            mainShadow.Position =
-                UDim2.fromOffset(
-                    newX + 3,
-                    newY + 3
-                )
-
-            -- Keep Fullbright attached
-            fullbrightButton.Position =
-                UDim2.fromOffset(
-                    newX
-                    + BUTTON_SIZE
-                    + GAP,
-                    newY + 4
-                )
-
-            fullbrightShadow.Position =
-                UDim2.fromOffset(
-                    newX
-                    + BUTTON_SIZE
-                    + GAP
-                    + 3,
-                    newY + 7
-                )
-
-        end
-
-    end
-
-    -- =====================================================
-    -- FULLBRIGHT
-    -- =====================================================
-
-    if fullbrightDragging then
-
-        if input.UserInputType ~=
-            Enum.UserInputType.MouseMovement
-            and input.UserInputType ~=
-            Enum.UserInputType.Touch then
-
-            return
-
-        end
-
-        local delta =
-            input.Position
-            - fullbrightDragStart
-
-        fullbrightMovedDistance =
-            math.max(
-                fullbrightMovedDistance,
-                math.abs(delta.X)
-                + math.abs(delta.Y)
-            )
-
-        local newX =
-            fullbrightStartPosition.X.Offset
-            + delta.X
-
-        local newY =
-            fullbrightStartPosition.Y.Offset
-            + delta.Y
-
-        newX, newY =
-            clampFullbrightPosition(
-                newX,
-                newY
-            )
-
-        fullbrightButton.Position =
-            UDim2.fromOffset(
-                newX,
-                newY
-            )
-
-        fullbrightShadow.Position =
-            UDim2.fromOffset(
-                newX + 3,
-                newY + 3
-            )
-
-    end
-
-end)
-
--- =========================================================
--- INPUT ENDED
--- =========================================================
-
-UserInputService.InputEnded:Connect(function(input)
-
-    if input.UserInputType ~=
-        Enum.UserInputType.MouseButton1
-        and input.UserInputType ~=
-        Enum.UserInputType.Touch then
-
-        return
-
-    end
-
-    -- =====================================================
-    -- MAIN
-    -- =====================================================
-
-    if dragging then
-
-        dragging = false
-
-        if movedDistance <
-            DRAG_THRESHOLD then
-
-            clickAnimation(scale)
-
-            hidden = not hidden
-
-            -- =================================================
-            -- ORIGINAL ARCEUS X FUNCTION
-            -- =================================================
-
-            local arceusGui
-
-            pcall(function()
-
-                for _, gui in ipairs(
-                    targetParent:GetChildren()
-                ) do
-
-                    if gui ~= toggleGui
-                        and gui:IsA("ScreenGui")
-                        and (
-                            string.find(
-                                string.lower(gui.Name),
-                                "arceus"
-                            )
-                            or string.find(
-                                string.lower(gui.Name),
-                                "arceusx"
-                            )
-                        ) then
-
-                        arceusGui = gui
-                        break
-
-                    end
-
-                end
-
-            end)
-
-            if arceusGui then
-                arceusGui.Enabled =
-                    not hidden
-            end
-
-            updateAppearance()
-
-        end
-
-    end
-
-    -- =====================================================
-    -- FULLBRIGHT
-    -- =====================================================
-
-    if fullbrightDragging then
-
-        fullbrightDragging = false
-
-        if fullbrightMovedDistance <
-            DRAG_THRESHOLD then
-
-            clickAnimation(
-                fullbrightScale
-            )
-
-            fullbright =
-                not fullbright
-
-            if fullbright then
-                enableFullbright()
-            else
-                disableFullbright()
-            end
-
-            updateFullbrightAppearance()
-
-        end
-
-    end
-
-end)
-
--- =========================================================
--- VIEWPORT CHANGE
--- =========================================================
-
-workspace.CurrentCamera:GetPropertyChangedSignal(
-    "ViewportSize"
-):Connect(function()
-
-    -- Main button
-    local x =
-        button.Position.X.Offset
-
-    local y =
-        button.Position.Y.Offset
+local function updateGroupPosition(x, y)
 
     x, y =
-        clampMainPosition(
+        clampPosition(
             x,
             y
         )
+
+    -- -----------------------------------------------------
+    -- Main
+    -- -----------------------------------------------------
 
     button.Position =
         UDim2.fromOffset(
@@ -1733,20 +1604,16 @@ workspace.CurrentCamera:GetPropertyChangedSignal(
             y + 3
         )
 
-    -- Keep Fullbright attached
+    -- -----------------------------------------------------
+    -- Fullbright
+    -- ZERO GAP
+    -- -----------------------------------------------------
+
     local fullX =
-        x
-        + BUTTON_SIZE
-        + GAP
+        x + BUTTON_SIZE
 
     local fullY =
         y + 4
-
-    fullX, fullY =
-        clampFullbrightPosition(
-            fullX,
-            fullY
-        )
 
     fullbrightButton.Position =
         UDim2.fromOffset(
@@ -1760,11 +1627,164 @@ workspace.CurrentCamera:GetPropertyChangedSignal(
             fullY + 3
         )
 
+end
+
+-- =========================================================
+-- DRAG MOVEMENT
+-- =========================================================
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if not dragging then
+        return
+    end
+
+    if
+        input.UserInputType ~=
+            Enum.UserInputType.MouseMovement
+        and
+        input.UserInputType ~=
+            Enum.UserInputType.Touch
+    then
+
+        return
+
+    end
+
+    local delta =
+        input.Position
+        - dragStart
+
+    movedDistance =
+        math.max(
+            movedDistance,
+            math.abs(delta.X)
+                + math.abs(delta.Y)
+        )
+
+    local newX =
+        startPosition.X.Offset
+        + delta.X
+
+    local newY =
+        startPosition.Y.Offset
+        + delta.Y
+
+    updateGroupPosition(
+        newX,
+        newY
+    )
+
+end)
+
+-- =========================================================
+-- DRAG END / MAIN CLICK
+-- =========================================================
+
+UserInputService.InputEnded:Connect(function(input)
+
+    if
+        input.UserInputType ~=
+            Enum.UserInputType.MouseButton1
+        and
+        input.UserInputType ~=
+            Enum.UserInputType.Touch
+    then
+
+        return
+
+    end
+
+    if not dragging then
+        return
+    end
+
+    dragging = false
+
+    if movedDistance <
+        DRAG_THRESHOLD then
+
+        clickAnimation(scale)
+
+        hidden =
+            not hidden
+
+        local arceusGui =
+            findArceusX()
+
+        if arceusGui then
+
+            arceusGui.Enabled =
+                not hidden
+
+        else
+
+            warn(
+                "[Shadow Toggle] Arceus X GUI not found."
+            )
+
+        end
+
+        updateAppearance()
+
+    end
+
+end)
+
+-- =========================================================
+-- FULLBRIGHT CLICK
+-- =========================================================
+
+fullbrightButton.Activated:Connect(function()
+
+    clickAnimation(
+        fullbrightScale
+    )
+
+    fullbright =
+        not fullbright
+
+    if fullbright then
+
+        enableFullbright()
+
+    else
+
+        disableFullbright()
+
+    end
+
+    updateFullbrightAppearance()
+
+end)
+
+-- =========================================================
+-- VIEWPORT CHANGE
+-- =========================================================
+
+workspace.CurrentCamera:GetPropertyChangedSignal(
+    "ViewportSize"
+):Connect(function()
+
+    updateGroupPosition(
+        button.Position.X.Offset,
+        button.Position.Y.Offset
+    )
+
 end)
 
 -- =========================================================
 -- INITIALIZE
 -- =========================================================
 
+updateGroupPosition(
+    MAIN_X,
+    MAIN_Y
+)
+
 updateAppearance()
 updateFullbrightAppearance()
+
+print(
+    "[Shadow Toggle] Loaded successfully."
+)
