@@ -1,3 +1,18 @@
+--[[
+
+  _  ___ _ _    _                _     _  _     _               
+ | |/ (_) | |__| |_ _ _ ___ __ _| |__ | || |___| |_ __  ___ _ _ 
+ | ' <| | | (_-<  _| '_/ -_) _` | / / | __ / -_) | '_ \/ -_) '_|
+ |_|\_\_|_|_/__/\__|_| \___\__,_|_\_\ |_||_\___|_| .__/\___|_|  
+ | |__ _  _  |_   _| |_ (_)__ _ __ _ ___         |_|            
+ | '_ \ || |   | | | ' \| / _` / _` / _ \                       
+ |_.__/\_, |   |_| |_||_|_\__,_\__, \___/                       
+       |__/                    |___/                            
+
+ Credits: @DonjoSyntax on Youtube (Original Idea) & Infinite Yield & AI
+
+]]--
+
 local cloneref = cloneref or function(...) return ... end
 
 local sbPlaceIds = {
@@ -5,8 +20,6 @@ local sbPlaceIds = {
     [11520107397] = true,
     [124596094333302] = true,
     [9015014224] = true,
-	[2380077519] = true,
-
 }
 
 if not sbPlaceIds[game.PlaceId] then
