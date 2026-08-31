@@ -63,8 +63,8 @@ ScreenGui.Parent = guiParent
 
 local Frame = Instance.new("Frame")
 Frame.Name = randomString()
-Frame.Size = UDim2.new(0, 250, 0, 180)
-Frame.Position = UDim2.new(0.5, -125, 0.5, -90)
+Frame.Size = UDim2.new(0, 250, 0, 200)
+Frame.Position = UDim2.new(0.5, -125, 0.5, -100)
 Frame.BackgroundColor3 = Color3.fromRGB(36, 36, 37)
 Frame.BorderSizePixel = 0
 Frame.Active = true
@@ -159,9 +159,22 @@ Stop.Font = Enum.Font.GothamBold
 Stop.TextSize = 14
 Stop.Parent = Frame
 
+local autoResetEnabled = true
+
+local ToggleReset = Instance.new("TextButton")
+ToggleReset.Name = randomString()
+ToggleReset.Position = UDim2.new(0.5, -100, 0, 120)
+ToggleReset.Size = UDim2.new(0, 200, 0, 30)
+ToggleReset.Text = "Auto-Reset: ON"
+ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+ToggleReset.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleReset.Font = Enum.Font.GothamBold
+ToggleReset.TextSize = 14
+ToggleReset.Parent = Frame
+
 local IY = Instance.new("TextButton")
 IY.Name = randomString()
-IY.Position = UDim2.new(0.5, -100, 0, 140)
+IY.Position = UDim2.new(0.5, -100, 0, 160)
 IY.Size = UDim2.new(0, 200, 0, 25)
 IY.Text = "Execute Infinite Yield"
 IY.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
@@ -176,12 +189,23 @@ IY_UICorner.CornerRadius = UDim.new(0, 6)
 IY_UICorner.Parent = IY
 
 local function notify(message)
-        StarterGui:SetCore("SendNotification", {
-            Title = "Error",
-            Text = message,
-            Duration = 3
-        })
+    StarterGui:SetCore("SendNotification", {
+        Title = "Error",
+        Text = message,
+        Duration = 3
+    })
 end
+
+ToggleReset.MouseButton1Click:Connect(function()
+    autoResetEnabled = not autoResetEnabled
+    if autoResetEnabled then
+        ToggleReset.Text = "Auto-Reset: ON"
+        ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+    else
+        ToggleReset.Text = "Auto-Reset: OFF"
+        ToggleReset.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    end
+end)
 
 IY.MouseButton1Click:Connect(function()
     if getgenv().IY_LOADED then
@@ -251,9 +275,11 @@ local function followTarget()
         end
 
         if ragdolled and ragdolled.Value then
-            if not alreadyReset and resetEvent then
-                resetEvent:FireServer()
-                alreadyReset = true
+            if autoResetEnabled then
+                if not alreadyReset and resetEvent then
+                    resetEvent:FireServer()
+                    alreadyReset = true
+                end
             end
         else
             alreadyReset = false
@@ -323,7 +349,7 @@ Minimize.MouseButton1Click:Connect(function()
             end
         end
     end
-    Frame.Size = minimized and UDim2.new(0, 250, 0, 180) or UDim2.new(0, 250, 0, 30)
+    Frame.Size = minimized and UDim2.new(0, 250, 0, 200) or UDim2.new(0, 250, 0, 30)
 end)
 
 Close.MouseButton1Click:Connect(function()
