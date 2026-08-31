@@ -1,284 +1,329 @@
---// R6/R15 Animation Checker
---// Client-side / Executor
---// Copies diagnostic results to clipboard
+local cloneref = cloneref or function(...) return ... end
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local sbPlaceIds = {
+    [6403373529] = true,
+    [11520107397] = true,
+    [124596094333302] = true,
+    [9015014224] = true,
+}
 
-local results = {}
-local function log(label, value)
-    table.insert(results, string.format("[%s] %s", label, tostring(value)))
+if not sbPlaceIds[game.PlaceId] then
+    local MarketplaceService = cloneref(game:GetService("MarketplaceService"))
+    local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name or "another game"
+    print("This script is for Slap Battles, but you are in " .. gameName)
+    return
 end
 
-local function section(name)
-    table.insert(results, "")
-    table.insert(results, "========== " .. name .. " ==========")
+if getgenv().KsHelper_Loaded then
+    return
 end
 
-local function safe(name, callback)
-    local ok, result = pcall(callback)
+pcall(function() getgenv().KsHelper_Loaded = true end)
 
-    if ok then
-        log(name, result)
-        return result
-    else
-        log(name, "ERROR: " .. tostring(result))
-        return nil
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local StarterGui = cloneref(game:GetService("StarterGui"))
+local Players = cloneref(game:GetService("Players"))
+local LocalPlayer = cloneref(Players.LocalPlayer)
+
+local guiParent = (gethui and gethui()) or CoreGui:FindFirstChild("RobloxGui") or CoreGui
+
+local function randomString()
+	local length = math.random(10,20)
+	local array = {}
+	for i = 1, length do
+		array[i] = string.char(math.random(32, 126))
+	end
+	return table.concat(array)
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = randomString()
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = guiParent
+
+local Frame = Instance.new("Frame")
+Frame.Name = randomString()
+Frame.Size = UDim2.new(0, 250, 0, 180)
+Frame.Position = UDim2.new(0.5, -125, 0.5, -90)
+Frame.BackgroundColor3 = Color3.fromRGB(36, 36, 37)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.Name = randomString()
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Name = randomString()
+UIStroke.Color = Color3.fromRGB(60, 60, 60)
+UIStroke.Parent = Frame
+
+local Title = Instance.new("TextLabel")
+Title.Name = randomString()
+Title.Size = UDim2.new(1, -30, 0, 30)
+Title.Position = UDim2.new(0, 25, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Killstreak Helper"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Frame
+
+local Minimize = Instance.new("TextButton")
+Minimize.Name = randomString()
+Minimize.Size = UDim2.new(0, 25, 0, 25)
+Minimize.Position = UDim2.new(1, -60, 0, 2)
+Minimize.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Minimize.Text = "_"
+Minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
+Minimize.Font = Enum.Font.GothamBold
+Minimize.TextSize = 18
+Minimize.Parent = Frame
+
+local MinimizeUICorner = Instance.new("UICorner")
+MinimizeUICorner.Name = randomString()
+MinimizeUICorner.CornerRadius = UDim.new(0, 6)
+MinimizeUICorner.Parent = Minimize
+
+local Close = Instance.new("TextButton")
+Close.Name = randomString()
+Close.Size = UDim2.new(0, 25, 0, 25)
+Close.Position = UDim2.new(1, -30, 0, 2)
+Close.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Close.Text = "X"
+Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 14
+Close.Parent = Frame
+
+local CloseUICorner = Instance.new("UICorner")
+CloseUICorner.Name = randomString()
+CloseUICorner.CornerRadius = UDim.new(0, 6)
+CloseUICorner.Parent = Close
+
+local TextBox = Instance.new("TextBox")
+TextBox.Name = randomString()
+TextBox.Position = UDim2.new(0.5, -100, 0, 40)
+TextBox.Size = UDim2.new(0, 200, 0, 30)
+TextBox.Text = ""
+TextBox.PlaceholderText = "Player's name"
+TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Font = Enum.Font.Gotham
+TextBox.TextSize = 14
+TextBox.Parent = Frame
+
+local Start = Instance.new("TextButton")
+Start.Name = randomString()
+Start.Position = UDim2.new(0.5, -100, 0, 80)
+Start.Size = UDim2.new(0, 90, 0, 30)
+Start.Text = "Start"
+Start.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+Start.TextColor3 = Color3.fromRGB(255, 255, 255)
+Start.Font = Enum.Font.GothamBold
+Start.TextSize = 14
+Start.Parent = Frame
+
+local Stop = Instance.new("TextButton")
+Stop.Name = randomString()
+Stop.Position = UDim2.new(0.5, 10, 0, 80)
+Stop.Size = UDim2.new(0, 90, 0, 30)
+Stop.Text = "Stop"
+Stop.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+Stop.TextColor3 = Color3.fromRGB(255, 255, 255)
+Stop.Font = Enum.Font.GothamBold
+Stop.TextSize = 14
+Stop.Parent = Frame
+
+local IY = Instance.new("TextButton")
+IY.Name = randomString()
+IY.Position = UDim2.new(0.5, -100, 0, 140)
+IY.Size = UDim2.new(0, 200, 0, 25)
+IY.Text = "Execute Infinite Yield"
+IY.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+IY.TextColor3 = Color3.fromRGB(255, 255, 255)
+IY.Font = Enum.Font.GothamBold
+IY.TextSize = 14
+IY.Parent = Frame
+
+local IY_UICorner = Instance.new("UICorner")
+IY_UICorner.Name = randomString()
+IY_UICorner.CornerRadius = UDim.new(0, 6)
+IY_UICorner.Parent = IY
+
+local function notify(message)
+        StarterGui:SetCore("SendNotification", {
+            Title = "Error",
+            Text = message,
+            Duration = 3
+        })
+end
+
+IY.MouseButton1Click:Connect(function()
+    if getgenv().IY_LOADED then
+        notify("Infinite Yield is already running!")
+        return
+    end
+
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end)
+
+    if not success then
+        notify("Infinite Yield failed to load")
+    end
+end)
+
+for _, part in ipairs(workspace:WaitForChild("Lobby"):WaitForChild("brazil"):GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.CanTouch = false
     end
 end
 
-section("PLAYER")
+local helperRunning = false
+local targetPlayer
+local alreadyReset = false
 
-log("Player", player and player.Name or "N/A")
-log("UserId", player and player.UserId or "N/A")
-
-section("CHARACTER")
-
-local character = player.Character
-
-if not character then
-    log("Character", "NOT FOUND")
-else
-    log("Character", character:GetFullName())
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    local animate = character:FindFirstChild("Animate")
-    local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-
-    section("RIG")
-
-    if humanoid then
-        log("Humanoid", "FOUND")
-        log("RigType", humanoid.RigType.Name)
-        log("HipHeight", humanoid.HipHeight)
-        log("WalkSpeed", humanoid.WalkSpeed)
-        log("JumpPower", humanoid.JumpPower)
-    else
-        log("Humanoid", "NOT FOUND")
-    end
-
-    log("HumanoidRootPart", rootPart and "FOUND" or "NOT FOUND")
-
-    section("ANIMATE")
-
-    log("Animate", animate and "FOUND" or "NOT FOUND")
-
-    if animate then
-        log("Animate.Disabled", animate.Disabled)
-
-        local playEmote = animate:FindFirstChild("PlayEmote")
-
-        log("PlayEmote", playEmote and "FOUND" or "NOT FOUND")
-
-        local animationObjects = {
-            "idle",
-            "walk",
-            "run",
-            "jump",
-            "fall",
-            "climb",
-            "sit",
-            "toolnone",
-            "toolslash",
-            "toollunge",
-            "wave",
-            "point",
-            "dance",
-            "dance2",
-            "dance3",
-            "laugh",
-            "cheer"
-        }
-
-        for _, name in ipairs(animationObjects) do
-            local obj = animate:FindFirstChild(name)
-
-            if obj then
-                log(name, "FOUND")
-            else
-                log(name, "MISSING")
-            end
+local function findPlayer(nickname)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower():find(nickname:lower()) or player.DisplayName:lower():find(nickname:lower()) then
+            return player
         end
     end
+    return nil
+end
 
-    section("ANIMATOR")
+local function followTarget()
+    while helperRunning and targetPlayer do
+        local character = LocalPlayer.Character
+        if not character then task.wait(0.1) continue end
 
-    if animator then
-        log("Animator", "FOUND")
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not humanoid or humanoid.Health <= 0 then task.wait(0.1) continue end
 
-        local tracks = animator:GetPlayingAnimationTracks()
+        local isInArena = character:FindFirstChild("isInArena")
+        if not isInArena or not isInArena.Value then task.wait(0.1) continue end
 
-        log("Playing tracks", #tracks)
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        local ragdolled = character:FindFirstChild("Ragdolled")
+        local resetEvent = LocalPlayer:FindFirstChild("Reset")
 
-        if #tracks > 0 then
-            for i, track in ipairs(tracks) do
-                log(
-                    "Track #" .. i,
-                    string.format(
-                        "%s | Looped=%s | Speed=%.2f | Weight=%.2f",
-                        track.Name,
-                        tostring(track.Looped),
-                        track.Speed,
-                        track.WeightCurrent
-                    )
-                )
+        local targetCharacter = targetPlayer.Character
+        if not targetCharacter then task.wait(0.1) continue end
 
-                if track.Animation then
-                    log(
-                        "Track #" .. i .. " AnimationId",
-                        track.Animation.AnimationId
-                    )
-                end
-            end
+        local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
+        local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+        local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+        local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
+
+        if(not isTargetInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0) then
+            task.wait(0.1)
+            continue
         end
-    else
-        log("Animator", "NOT FOUND")
-    end
 
-    section("RIG PARTS")
-
-    local r6Parts = {
-        "Head",
-        "Torso",
-        "Left Arm",
-        "Right Arm",
-        "Left Leg",
-        "Right Leg"
-    }
-
-    local r15Parts = {
-        "Head",
-        "UpperTorso",
-        "LowerTorso",
-        "LeftUpperArm",
-        "LeftLowerArm",
-        "LeftHand",
-        "RightUpperArm",
-        "RightLowerArm",
-        "RightHand",
-        "LeftUpperLeg",
-        "LeftLowerLeg",
-        "LeftFoot",
-        "RightUpperLeg",
-        "RightLowerLeg",
-        "RightFoot"
-    }
-
-    local r6Count = 0
-    local r15Count = 0
-
-    for _, part in ipairs(r6Parts) do
-        if character:FindFirstChild(part) then
-            r6Count += 1
+        if(not isTargetInArenaV2) and (not isTargetInArena.Value) then
+            task.wait(0.1)
+            continue
         end
-    end
 
-    for _, part in ipairs(r15Parts) do
-        if character:FindFirstChild(part) then
-            r15Count += 1
-        end
-    end
-
-    log("R6 parts detected", r6Count .. "/" .. #r6Parts)
-    log("R15 parts detected", r15Count .. "/" .. #r15Parts)
-
-    section("EXPECTED RESULT")
-
-    if humanoid then
-        if humanoid.RigType == Enum.HumanoidRigType.R6 then
-            log("Rig conclusion", "R6")
-        elseif humanoid.RigType == Enum.HumanoidRigType.R15 then
-            log("Rig conclusion", "R15")
-
-            if animate then
-                log(
-                    "Animation conclusion",
-                    animate.Disabled
-                        and "Animate exists but is DISABLED"
-                        or "Animate exists and is ENABLED"
-                )
+        if ragdolled and ragdolled.Value then
+            if not alreadyReset and resetEvent then
+                resetEvent:FireServer()
+                alreadyReset = true
             end
         else
-            log("Rig conclusion", "UNKNOWN")
+            alreadyReset = false
+            if rootPart then
+                rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -4)
+            end
         end
-    else
-        log("Rig conclusion", "Cannot determine")
-    end
-
-    section("R6 ANIMATION ASSETS")
-
-    local r6Animations = {
-        idle = {
-            "rbxassetid://12521158637",
-            "rbxassetid://12521162526"
-        },
-
-        walk = {
-            "rbxassetid://12518152696"
-        },
-
-        run = {
-            "rbxassetid://12518152696"
-        },
-
-        jump = {
-            "rbxassetid://12520880485"
-        },
-
-        fall = {
-            "rbxassetid://12520972571"
-        },
-
-        climb = {
-            "rbxassetid://12520982150"
-        },
-
-        sit = {
-            "rbxassetid://12520993168"
-        }
-    }
-
-    for name, ids in pairs(r6Animations) do
-        log(name, table.concat(ids, ", "))
+        task.wait()
     end
 end
 
-section("SUMMARY")
+local function enterArena()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local isInArena = character:WaitForChild("isInArena")
 
-if character then
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local animate = character:FindFirstChild("Animate")
-    local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+    while helperRunning and targetPlayer do
+        local targetCharacter = targetPlayer.Character
+        if targetCharacter then
+            local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
+            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
 
-    if humanoid and humanoid.RigType == Enum.HumanoidRigType.R15 then
-        log("Test", "You are currently R15")
-        log("R6 animation compatibility", "YES - script is designed to target R15")
-    elseif humanoid and humanoid.RigType == Enum.HumanoidRigType.R6 then
-        log("Test", "You are currently R6")
-        log("Original script behavior", "It would RETURN immediately")
-    else
-        log("Test", "Unable to determine rig")
+            if(isTargetInArena and isTargetInArena.Value) or isTargetInArenaV2 then
+                local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
+                if portal and portal:IsA("BasePart") then
+                    rootPart.CFrame = portal.CFrame
+                end
+                break
+            end
+        end
+        task.wait(0.2)
     end
 
-    log("Animate object", animate and "OK" or "MISSING")
-    log("Animator object", animator and "OK" or "MISSING")
-else
-    log("Test", "Character unavailable")
+    if helperRunning then
+        followTarget()
+    end
 end
 
-local output = table.concat(results, "\n")
+local function startHelper()
+    local nameInput = TextBox.Text
+    if nameInput == "" then
+        notify("Enter a player's name!")
+        return
+    end
 
--- Console
-print(output)
+    local player = findPlayer(nameInput)
+    if not player then
+        notify("Player not found!")
+        return
+    end
 
--- Clipboard
-if typeof(setclipboard) == "function" then
-    setclipboard(output)
-    print("\n[+] Results copied to clipboard.")
-elseif typeof(toclipboard) == "function" then
-    toclipboard(output)
-    print("\n[+] Results copied to clipboard.")
-else
-    warn("\n[!] Clipboard function not supported by this executor.")
+    targetPlayer = player
+    helperRunning = true
+    task.spawn(enterArena)
 end
+
+local function stopHelper()
+    helperRunning = false
+end
+
+Minimize.MouseButton1Click:Connect(function()
+    local minimized = TextBox.Visible == false
+    for _, child in ipairs(Frame:GetChildren()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+            if child ~= Title and child ~= Close and child ~= Minimize then
+                child.Visible = minimized
+            end
+        end
+    end
+    Frame.Size = minimized and UDim2.new(0, 250, 0, 180) or UDim2.new(0, 250, 0, 30)
+end)
+
+Close.MouseButton1Click:Connect(function()
+    stopHelper()
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+    getgenv().KsHelper_Loaded = nil
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    if helperRunning and targetPlayer then
+        alreadyReset = false
+        enterArena()
+    end
+end)
+
+Start.MouseButton1Click:Connect(startHelper)
+Stop.MouseButton1Click:Connect(stopHelper)
