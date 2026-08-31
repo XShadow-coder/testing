@@ -5,6 +5,7 @@ local sbPlaceIds = {
     [11520107397] = true,
     [124596094333302] = true,
     [9015014224] = true,
+		[2380077519] = true,
 }
 
 if not sbPlaceIds[game.PlaceId] then
