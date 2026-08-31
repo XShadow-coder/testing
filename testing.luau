@@ -3,7 +3,7 @@ local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
-local uiName = "DropdownExecutorTeleportUI"
+local uiName = "SafeDropdownTeleportUI"
 
 -- 1. Pulizia UI precedente
 local existingUi = CoreGui:FindFirstChild(uiName) or player.PlayerGui:FindFirstChild(uiName)
@@ -47,7 +47,7 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 6)
 mainCorner.Parent = mainFrame
 
--- Barra superiore (Draggable)
+-- Barra superiore (Draggable e Indicatore Cooldown)
 local topBar = Instance.new("Frame")
 topBar.Size = UDim2.new(1, 0, 0, 30)
 topBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -73,7 +73,7 @@ titleLabel.Text = "Items Teleporter"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 14
+titleLabel.TextSize = 13
 titleLabel.Parent = topBar
 
 -- Sistema di trascinamento
@@ -123,15 +123,46 @@ uiPadding.PaddingRight = UDim.new(0, 8)
 uiPadding.Parent = scrollFrame
 
 -- ==========================================
--- LOGICA DI TELETRASPORTO CORRETTA (DRITTO)
+-- SISTEMA DI COOLDOWN GLOBALE
+-- ==========================================
+local lastTeleportTime = 0
+local COOLDOWN_DURATION = 7
+
+-- Aggiorna visivamente il titolo per mostrare il cooldown
+task.spawn(function()
+    while task.wait(0.1) do
+        local now = os.clock()
+        local timePassed = now - lastTeleportTime
+        
+        if timePassed < COOLDOWN_DURATION then
+            local timeLeft = math.ceil(COOLDOWN_DURATION - timePassed)
+            titleLabel.Text = "In Cooldown... (" .. timeLeft .. "s)"
+            titleLabel.TextColor3 = Color3.fromRGB(255, 80, 80) -- Testo Rosso
+        else
+            titleLabel.Text = "Items Teleporter"
+            titleLabel.TextColor3 = Color3.new(1, 1, 1) -- Testo Bianco
+        end
+    end
+end)
+
+-- ==========================================
+-- LOGICA DI TELETRASPORTO
 -- ==========================================
 local function teleportTo(targetCFrame)
+    local now = os.clock()
+    -- Controlla se il cooldown è attivo
+    if now - lastTeleportTime < COOLDOWN_DURATION then
+        return -- Blocca il teletrasporto
+    end
+
     local char = player.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- Prende SOLO la posizione e ignora la rotazione! Così cadi sempre in piedi.
+    -- Registra il tempo dell'ultimo teletrasporto
+    lastTeleportTime = now
+
     local targetPosition = targetCFrame.Position
     local finalCFrame = CFrame.new(targetPosition + Vector3.new(0, 4, 0))
     
@@ -142,7 +173,7 @@ local function teleportTo(targetCFrame)
 end
 
 -- ==========================================
--- GESTIONE DELLE CATEGORIE (DROPDOWN)
+-- GESTIONE DELLE CATEGORIE E TRACKING OGGETTI
 -- ==========================================
 local categories = {}
 local trackedItems = {}
@@ -150,7 +181,6 @@ local trackedItems = {}
 local function getOrCreateCategory(itemName)
     if categories[itemName] then return categories[itemName] end
 
-    -- Contenitore della singola Categoria (Si auto-espande)
     local catFrame = Instance.new("Frame")
     catFrame.Name = itemName
     catFrame.Size = UDim2.new(1, 0, 0, 0)
@@ -162,7 +192,6 @@ local function getOrCreateCategory(itemName)
     catLayout.SortOrder = Enum.SortOrder.LayoutOrder
     catLayout.Parent = catFrame
 
-    -- Bottone Intestazione (Es: ▶ Apple)
     local headerBtn = Instance.new("TextButton")
     headerBtn.Size = UDim2.new(1, 0, 0, 35)
     headerBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -183,7 +212,6 @@ local function getOrCreateCategory(itemName)
     headerText.TextSize = 13
     headerText.Parent = headerBtn
 
-    -- Contenitore degli oggetti (Inizialmente invisibile)
     local itemsContainer = Instance.new("Frame")
     itemsContainer.Size = UDim2.new(1, 0, 0, 0)
     itemsContainer.BackgroundTransparency = 1
@@ -200,7 +228,6 @@ local function getOrCreateCategory(itemName)
     itemsPadding.PaddingTop = UDim.new(0, 2)
     itemsPadding.Parent = itemsContainer
 
-    -- Logica apertura/chiusura tendina
     local isOpen = false
     headerBtn.MouseButton1Click:Connect(function()
         isOpen = not isOpen
@@ -224,24 +251,18 @@ local function getOrCreateCategory(itemName)
     return categories[itemName]
 end
 
--- ==========================================
--- AGGIUNTA DEGLI OGGETTI NELLE CATEGORIE
--- ==========================================
 local function addItem(item)
     if not item:IsA("BasePart") and not item:IsA("Model") then return end
     if trackedItems[item] then return end
 
-    trackedItems[item] = true
     local category = getOrCreateCategory(item.Name)
     category.count = category.count + 1
 
-    -- Aggiorna il testo del contatore
     local arrow = category.isOpen() and "▼ " or "▶ "
     category.headerLabel.Text = arrow .. item.Name .. " (" .. category.count .. ")"
 
-    -- Crea la riga per l'oggetto singolo (Indentata verso destra per sembrare dentro)
     local rowFrame = Instance.new("Frame")
-    rowFrame.Size = UDim2.new(1, -15, 0, 30) -- Più stretta per l'indentazione
+    rowFrame.Size = UDim2.new(1, -15, 0, 30)
     rowFrame.Position = UDim2.new(0, 15, 0, 0)
     rowFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     rowFrame.BorderSizePixel = 0
@@ -273,10 +294,7 @@ local function addItem(item)
     Instance.new("UICorner", tpButton).CornerRadius = UDim.new(0, 4)
 
     tpButton.MouseButton1Click:Connect(function()
-        if not item or not item.Parent then 
-            rowFrame:Destroy() -- Elimina se l'oggetto non esiste più nel gioco
-            return 
-        end
+        if not item or not item.Parent then return end
         
         local targetCFrame
         if item:IsA("BasePart") then
@@ -290,15 +308,16 @@ local function addItem(item)
         
         if targetCFrame then
             teleportTo(targetCFrame)
-        else
-            warn("Impossibile trovare coordinate per " .. item.Name)
         end
     end)
+
+    -- Salviamo il riferimento della riga nella tabella per eliminarla dopo facilmente
+    trackedItems[item] = {
+        rowFrame = rowFrame,
+        categoryName = item.Name
+    }
 end
 
--- ==========================================
--- ORDINAMENTO ALFABETICO DELLE CATEGORIE
--- ==========================================
 local function sortCategories()
     local frames = {}
     for _, child in ipairs(scrollFrame:GetChildren()) do
@@ -307,6 +326,54 @@ local function sortCategories()
     table.sort(frames, function(a, b) return a.Name:lower() < b.Name:lower() end)
     for i, frame in ipairs(frames) do frame.LayoutOrder = i end
 end
+
+-- ==========================================
+-- SCANNER OGNI 2 SECONDI (Pulizia Automatica)
+-- ==========================================
+task.spawn(function()
+    while task.wait(2) do
+        local sortedRequired = false
+        
+        -- Controlliamo tutti gli oggetti tracciati
+        for item, data in pairs(trackedItems) do
+            -- Se l'oggetto è stato distrutto o non è più in workspace.Items
+            if not item or not item.Parent or not item:IsDescendantOf(workspaceItems) then
+                
+                -- Distruggi la riga UI specifica di quell'oggetto
+                if data.rowFrame then
+                    data.rowFrame:Destroy()
+                end
+                
+                -- Aggiorna la categoria
+                local catName = data.categoryName
+                local category = categories[catName]
+                
+                if category then
+                    category.count = category.count - 1
+                    
+                    if category.count <= 0 then
+                        -- Se non ci sono più oggetti, distruggi l'intera categoria
+                        category.frame:Destroy()
+                        categories[catName] = nil
+                        sortedRequired = true
+                    else
+                        -- Altrimenti, aggiorna il testo del contatore
+                        local arrow = category.isOpen() and "▼ " or "▶ "
+                        category.headerLabel.Text = arrow .. catName .. " (" .. category.count .. ")"
+                    end
+                end
+                
+                -- Rimuovi dalla tabella
+                trackedItems[item] = nil
+            end
+        end
+        
+        -- Se abbiamo eliminato un'intera categoria, riordiniamo l'alfabeto
+        if sortedRequired then
+            sortCategories()
+        end
+    end
+end)
 
 -- Avvio iniziale
 for _, item in ipairs(workspaceItems:GetChildren()) do
