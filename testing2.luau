@@ -117,7 +117,7 @@ uiPadding.Parent = scrollFrame
 -- SISTEMA DI COOLDOWN GLOBALE
 -- ==========================================
 local lastTeleportTime = 0
-local COOLDOWN_DURATION = 7
+local COOLDOWN_DURATION = 3
 
 task.spawn(function()
     while task.wait(0.1) do
