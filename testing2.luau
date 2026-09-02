@@ -1,11 +1,11 @@
 local REQUIRED_PLACE_ID = 9431156611
 
 if game.PlaceId ~= REQUIRED_PLACE_ID then
-    warn("❌ Place ID invalid! Script not executed.")
+    warn("Place ID invalid. Script not executed.")
     return
 end
 
-print("✅ Place ID Correct. Starting script...")
+print("Place ID Correct. Starting script...")
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
