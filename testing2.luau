@@ -1,24 +1,23 @@
 local REQUIRED_PLACE_ID = 9431156611
 
 if game.PlaceId ~= REQUIRED_PLACE_ID then
-    warn("Place ID invalid. Script not executed.")
+    warn("❌ Place ID unverified. Script not executed.")
     return
 end
 
-print("Place ID Correct. Starting script...")
+print("✅ Place ID verified. Starting script...")
+
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
-local uiName = "AdvancedAutoTPUI"
+local uiName = "SafetyAdvancedAutoTPUI"
 
 -- 1. Pulizia UI precedente
 local existingUi = CoreGui:FindFirstChild(uiName) or player.PlayerGui:FindFirstChild(uiName)
-if existingUi then
-    existingUi:Destroy()
-end
+if existingUi then existingUi:Destroy() end
 
 -- 2. Verifica Cartella
 local workspaceItems = workspace:FindFirstChild("Items")
@@ -33,23 +32,16 @@ screenGui.Name = uiName
 screenGui.ResetOnSpawn = false
 
 local success = pcall(function()
-    if gethui then
-        screenGui.Parent = gethui()
-    else
-        screenGui.Parent = CoreGui
-    end
+    if gethui then screenGui.Parent = gethui() else screenGui.Parent = CoreGui end
 end)
-if not success then
-    screenGui.Parent = player:WaitForChild("PlayerGui")
-end
+if not success then screenGui.Parent = player:WaitForChild("PlayerGui") end
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 260, 0, 360) -- Leggermente più largo per il pulsante Auto
+mainFrame.Size = UDim2.new(0, 260, 0, 360)
 mainFrame.Position = UDim2.new(0, 15, 0.5, -180)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
-
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 6)
 
 local topBar = Instance.new("Frame")
@@ -57,7 +49,6 @@ topBar.Size = UDim2.new(1, 0, 0, 30)
 topBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 topBar.BorderSizePixel = 0
 topBar.Parent = mainFrame
-
 Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 6)
 local topBarFix = Instance.new("Frame")
 topBarFix.Size = UDim2.new(1, 0, 0, 6)
@@ -90,9 +81,7 @@ topBar.InputBegan:Connect(function(input)
     end
 end)
 topBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
@@ -127,6 +116,7 @@ uiPadding.Parent = scrollFrame
 -- ==========================================
 local lastTeleportTime = 0
 local COOLDOWN_DURATION = 3
+local currentAutoTPCategory = nil
 
 task.spawn(function()
     while task.wait(0.1) do
@@ -144,6 +134,161 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- SISTEMA STATO MATCH (Logica esatta del detector testato)
+-- ==========================================
+local isMatchReady = false
+local working = false
+
+local busDetected = false
+local gliderDetected = false
+local freefallDetected = false
+
+local cycleId = 0
+
+local function resetMatchState()
+    isMatchReady = false
+    working = false
+    busDetected = false
+    gliderDetected = false
+    freefallDetected = false
+    cycleId = cycleId + 1
+end
+
+player.CharacterAdded:Connect(resetMatchState)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if working then
+            continue
+        end
+
+        local char = player.Character
+        if not char then
+            resetMatchState()
+            continue
+        end
+
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then
+            continue
+        end
+
+        local inBus = char:GetAttribute("InBus")
+        local state = humanoid:GetState()
+        local glider = char:FindFirstChild("Glider")
+
+        -- Quando siamo pronti, se viene rilevato il Bus, il ciclo riparte da capo
+        if isMatchReady then
+            if inBus == true then
+                resetMatchState()
+            end
+            continue
+        end
+
+        --==================================================
+        -- BUS
+        --==================================================
+        if inBus == true and not busDetected then
+            busDetected = true
+            gliderDetected = false
+            freefallDetected = false
+        end
+
+        --==================================================
+        -- GLIDER
+        --==================================================
+        if busDetected
+            and inBus == nil
+            and glider
+            and not gliderDetected then
+            
+            gliderDetected = true
+        end
+
+        --==================================================
+        -- FREEFALL
+        --==================================================
+        if gliderDetected
+            and state == Enum.HumanoidStateType.Freefall
+            and not freefallDetected then
+            
+            freefallDetected = true
+        end
+
+        --==================================================
+        -- RUNNING + INBUS NIL
+        --==================================================
+        if freefallDetected
+            and state == Enum.HumanoidStateType.Running
+            and inBus == nil then
+            
+            working = true
+            local thisCycle = cycleId
+
+            task.delay(5, function()
+                if thisCycle ~= cycleId then
+                    return
+                end
+                
+                isMatchReady = true
+                working = false
+            end)
+
+            continue
+        end
+
+        --==================================================
+        -- NO GLIDER / ALREADY ON GROUND
+        --==================================================
+        if not busDetected
+            and state == Enum.HumanoidStateType.Running
+            and inBus == nil then
+            
+            working = true
+            local thisCycle = cycleId
+
+            task.delay(0.5, function()
+                if thisCycle ~= cycleId then
+                    return
+                end
+                
+                isMatchReady = true
+                working = false
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- CONTROLLI DI SICUREZZA
+-- ==========================================
+local function checkSafetyConditions(categoryName)
+    -- 1. Aspetta di essere a terra e fuori dal bus (utilizzando il loop in background)
+    while not isMatchReady do
+        if categoryName and currentAutoTPCategory ~= categoryName then return false end
+        task.wait(0.2)
+    end
+    
+    -- 2. Controllo Ragdolled
+    local char = player.Character
+    if char and char:GetAttribute("Ragdolled") == true then
+        while true do
+            char = player.Character
+            if not char then task.wait(0.5); continue end
+            if char:GetAttribute("Ragdolled") ~= true then break end
+            
+            if categoryName and currentAutoTPCategory ~= categoryName then return false end
+            task.wait(0.2)
+        end
+    end
+    
+    return true
+end
+
+-- ==========================================
+-- LOGICA TELETRASPORTO
+-- ==========================================
 local function teleportTo(targetCFrame)
     local now = os.clock()
     if now - lastTeleportTime < COOLDOWN_DURATION then return false end
@@ -179,12 +324,10 @@ end
 local categories = {}
 local trackedItems = {}
 
-local currentAutoTPCategory = nil
 local currentAutoTPTarget = nil
 local currentAutoTPTargetPos = nil
 local currentAutoTPConnection = nil
 
--- Spegne completamente l'Auto TP
 local function disableAutoTP()
     if currentAutoTPCategory and categories[currentAutoTPCategory] then
         local btn = categories[currentAutoTPCategory].autoTpBtn
@@ -203,11 +346,9 @@ local function disableAutoTP()
     end
 end
 
--- Esegue logicamente il prossimo TP automatico
 local function doAutoTP(categoryName)
     if currentAutoTPCategory ~= categoryName then return end
 
-    -- Trova il prossimo oggetto disponibile
     local targetItem = nil
     for item, data in pairs(trackedItems) do
         if data.categoryName == categoryName and item.Parent and item:IsDescendantOf(workspaceItems) then
@@ -216,37 +357,34 @@ local function doAutoTP(categoryName)
         end
     end
 
-    if not targetItem then
-        disableAutoTP()
-        return
-    end
+    if not targetItem then disableAutoTP(); return end
 
-    -- Attendi la fine del cooldown
+    -- 1. Aspetta il Cooldown
     while os.clock() - lastTeleportTime < COOLDOWN_DURATION do
         if currentAutoTPCategory ~= categoryName then return end
         task.wait(0.1)
     end
+    
+    -- 2. Passa i controlli di sicurezza prima di teletrasportarsi (es. in volo o ragdoll)
+    if not checkSafetyConditions(categoryName) then return end
 
-    -- Riprova se l'oggetto è sparito durante l'attesa
+    -- 3. Assicurati che l'oggetto esista ancora dopo l'attesa
     if not targetItem or not targetItem.Parent or not targetItem:IsDescendantOf(workspaceItems) then
         doAutoTP(categoryName)
         return
     end
 
-    -- Acquisito bersaglio valido
     currentAutoTPTarget = targetItem
     currentAutoTPTargetPos = getTargetPosition(targetItem)
 
     if currentAutoTPTargetPos then
         teleportTo(CFrame.new(currentAutoTPTargetPos))
         
-        -- Evento ultra-veloce che rileva quando l'oggetto scompare/viene raccolto
         if currentAutoTPConnection then currentAutoTPConnection:Disconnect() end
         currentAutoTPConnection = targetItem.AncestryChanged:Connect(function(_, parent)
             if not parent or not targetItem:IsDescendantOf(workspaceItems) then
                 if currentAutoTPConnection then currentAutoTPConnection:Disconnect() end
                 
-                -- Se l'oggetto distrutto era il bersaglio
                 if currentAutoTPTarget == targetItem then
                     local char = player.Character
                     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -254,13 +392,10 @@ local function doAutoTP(categoryName)
                     if hrp and currentAutoTPTargetPos then
                         local dist = (hrp.Position - currentAutoTPTargetPos).Magnitude
                         if dist <= 30 then
-                            -- È nel range! Passa all'oggetto successivo
                             local catToProcess = currentAutoTPCategory
-                            task.spawn(function()
-                                doAutoTP(catToProcess)
-                            end)
+                            task.spawn(function() doAutoTP(catToProcess) end)
                         else
-                            disableAutoTP() -- Troppo lontano, spegni
+                            disableAutoTP()
                         end
                     else
                         disableAutoTP()
@@ -272,7 +407,7 @@ local function doAutoTP(categoryName)
             end
         end)
     else
-        doAutoTP(categoryName) -- CFrame invalido, salta al prossimo
+        doAutoTP(categoryName)
     end
 end
 
@@ -286,10 +421,7 @@ local function toggleAutoTP(categoryName)
         btn.Text = "Auto: ON"
         btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         btn.TextColor3 = Color3.new(1, 1, 1)
-        
-        task.spawn(function()
-            doAutoTP(categoryName)
-        end)
+        task.spawn(function() doAutoTP(categoryName) end)
     end
 end
 
@@ -363,8 +495,7 @@ local function getOrCreateCategory(itemName)
     headerBtn.MouseButton1Click:Connect(function()
         isOpen = not isOpen
         itemsContainer.Visible = isOpen
-        local count = categories[itemName].count
-        headerText.Text = (isOpen and "▼ " or "▶ ") .. itemName .. " (" .. count .. ")"
+        headerText.Text = (isOpen and "▼ " or "▶ ") .. itemName .. " (" .. categories[itemName].count .. ")"
     end)
 
     autoTpBtn.MouseButton1Click:Connect(function()
@@ -397,7 +528,6 @@ local function addItem(item)
     rowFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     rowFrame.BorderSizePixel = 0
     rowFrame.Parent = category.container
-
     Instance.new("UICorner", rowFrame).CornerRadius = UDim.new(0, 4)
 
     local nameLabel = Instance.new("TextLabel")
@@ -420,13 +550,17 @@ local function addItem(item)
     tpButton.Font = Enum.Font.GothamBold
     tpButton.TextSize = 11
     tpButton.Parent = rowFrame
-
     Instance.new("UICorner", tpButton).CornerRadius = UDim.new(0, 4)
 
     tpButton.MouseButton1Click:Connect(function()
         if not item or not item.Parent then return end
-        local pos = getTargetPosition(item)
-        if pos then teleportTo(CFrame.new(pos)) end
+        
+        task.spawn(function()
+            if checkSafetyConditions() then
+                local pos = getTargetPosition(item)
+                if pos then teleportTo(CFrame.new(pos)) end
+            end
+        end)
     end)
 
     trackedItems[item] = { rowFrame = rowFrame, categoryName = item.Name }
@@ -462,16 +596,13 @@ task.spawn(function()
                         categories[catName] = nil
                         sortedRequired = true
                         
-                        -- Spegni l'Auto TP se la categoria è vuota
                         if currentAutoTPCategory == catName then disableAutoTP() end
                     else
                         category.headerLabel.Text = (category.isOpen() and "▼ " or "▶ ") .. catName .. " (" .. category.count .. ")"
                     end
                 end
-                
                 trackedItems[item] = nil
             else
-                -- Mantieni aggiornata la posizione dell'oggetto target nel caso si muova
                 if item == currentAutoTPTarget then
                     currentAutoTPTargetPos = getTargetPosition(item) or currentAutoTPTargetPos
                 end
