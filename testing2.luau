@@ -135,41 +135,106 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- SISTEMA STATO MATCH (Logica esatta del detector testato)
+-- SISTEMA STATO MATCH
+-- Versione più robusta, stessa logica di detection
 -- ==========================================
+
 local isMatchReady = false
-local working = false
 
 local busDetected = false
 local gliderDetected = false
 local freefallDetected = false
 
 local cycleId = 0
+local readyTimerActive = false
 
 local function resetMatchState()
     isMatchReady = false
-    working = false
+
     busDetected = false
     gliderDetected = false
     freefallDetected = false
+
+    readyTimerActive = false
     cycleId = cycleId + 1
 end
 
-player.CharacterAdded:Connect(resetMatchState)
+local function startReadyTimer(delayTime, expectedCycle, expectedCharacter)
+    if readyTimerActive then
+        return
+    end
+
+    readyTimerActive = true
+
+    task.delay(delayTime, function()
+        -- Il ciclo è cambiato: questo timer non è più valido
+        if expectedCycle ~= cycleId then
+            return
+        end
+
+        -- Il Character è cambiato
+        if player.Character ~= expectedCharacter then
+            return
+        end
+
+        -- Se nel frattempo siamo rientrati nel Bus,
+        -- non dobbiamo diventare "Ready"
+        if expectedCharacter:GetAttribute("InBus") == true then
+            return
+        end
+
+        -- Controlli finali prima di dichiarare Ready
+        local humanoid = expectedCharacter:FindFirstChildOfClass("Humanoid")
+        if not humanoid then
+            return
+        end
+
+        if humanoid:GetState() ~= Enum.HumanoidStateType.Running then
+            return
+        end
+
+        isMatchReady = true
+        readyTimerActive = false
+    end)
+end
+
+player.CharacterAdded:Connect(function(character)
+    resetMatchState()
+
+    -- Attende che il nuovo Character sia effettivamente pronto
+    task.spawn(function()
+        local humanoid = character:WaitForChild("Humanoid", 5)
+
+        if player.Character ~= character then
+            return
+        end
+
+        if not humanoid then
+            return
+        end
+    end)
+end)
 
 task.spawn(function()
     while task.wait(0.1) do
-        if working then
-            continue
-        end
 
         local char = player.Character
+
         if not char then
-            resetMatchState()
+            if isMatchReady
+                or busDetected
+                or gliderDetected
+                or freefallDetected
+                or readyTimerActive then
+
+                resetMatchState()
+            end
+
             continue
         end
 
         local humanoid = char:FindFirstChildOfClass("Humanoid")
+
         if not humanoid then
             continue
         end
@@ -178,13 +243,93 @@ task.spawn(function()
         local state = humanoid:GetState()
         local glider = char:FindFirstChild("Glider")
 
-        -- Quando siamo pronti, se viene rilevato il Bus, il ciclo riparte da capo
+        -- ==================================================
+        -- READY
+        -- ==================================================
         if isMatchReady then
+
+            -- Nuovo ciclo
             if inBus == true then
                 resetMatchState()
             end
+
             continue
         end
+
+        -- ==================================================
+        -- BUS
+        -- ==================================================
+        if inBus == true and not busDetected then
+            busDetected = true
+
+            gliderDetected = false
+            freefallDetected = false
+
+            readyTimerActive = false
+        end
+
+        -- ==================================================
+        -- GLIDER
+        -- ==================================================
+        if busDetected
+            and inBus == nil
+            and glider
+            and not gliderDetected then
+
+            gliderDetected = true
+        end
+
+        -- ==================================================
+        -- FREEFALL
+        -- ==================================================
+        if gliderDetected
+            and state == Enum.HumanoidStateType.Freefall
+            and not freefallDetected then
+
+            freefallDetected = true
+        end
+
+        -- ==================================================
+        -- CICLO COMPLETO
+        -- Bus -> Glider -> Freefall -> Running
+        -- ==================================================
+        if freefallDetected
+            and state == Enum.HumanoidStateType.Running
+            and inBus == nil
+            and not readyTimerActive then
+
+            local thisCycle = cycleId
+
+            startReadyTimer(
+                5,
+                thisCycle,
+                char
+            )
+
+            continue
+        end
+
+        -- ==================================================
+        -- FALLBACK
+        -- Se lo script parte già a terra
+        -- ==================================================
+        if not busDetected
+            and not gliderDetected
+            and not freefallDetected
+            and state == Enum.HumanoidStateType.Running
+            and inBus == nil
+            and not readyTimerActive then
+
+            local thisCycle = cycleId
+
+            startReadyTimer(
+                0.5,
+                thisCycle,
+                char
+            )
+        end
+    end
+end)
 
         --==================================================
         -- BUS
