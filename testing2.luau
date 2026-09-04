@@ -860,82 +860,49 @@ end
 --==================================================
 
 local function enterArena(workerId)
+    while helperRunning and workerId == arenaWorkerId do
+        -- Controlla prima se il target esiste ed è valido
+        if not targetPlayer or targetPlayer.Parent ~= Players then
+            task.wait(0.5)
+            continue
+        end
 
-    while helperRunning
-        and workerId == arenaWorkerId do
+        local targetCharacter = targetPlayer.Character
+        local targetIsInArena = targetCharacter and targetCharacter:FindFirstChild("isInArena")
 
-        local character =
-            getCharacter(LocalPlayer)
+        -- SE IL TARGET NON È IN ARENA, NON FARE NULLA E ASPETTA
+        if not targetIsInArena or not targetIsInArena.Value then
+            task.wait(0.5)
+            continue
+        end
 
+        -- Se il target è in arena, controlla il nostro personaggio
+        local character = getCharacter(LocalPlayer)
         if not character then
             task.wait(0.2)
             continue
         end
 
-        local humanoid =
-            getHumanoid(character)
+        local humanoid = getHumanoid(character)
+        local rootPart = getRootPart(character)
 
-        local rootPart =
-            getRootPart(character)
-
-        if not humanoid
-            or humanoid.Health <= 0
-            or not rootPart then
-
+        if not humanoid or humanoid.Health <= 0 or not rootPart then
             task.wait(0.2)
             continue
         end
 
-        local isInArena =
-            character:FindFirstChild("isInArena")
-
-        -- Already inside the arena.
-        if isInArena
-            and isInArena.Value then
-
-            return
+        local isInArena = character:FindFirstChild("isInArena")
+        if isInArena and isInArena.Value then
+            return -- Già dentro, il follow loop penserà a teletrasportarlo sul target
         end
 
-        --==================================================
-        -- IMPORTANT:
-        -- Do NOT check the target here.
-        -- Enter the arena directly through Teleport1.
-        --==================================================
-
-        local touched =
-            triggerPortal(rootPart)
-
+        -- Tocca il portale solo ora che il target è dentro l'arena
+        local touched = triggerPortal(rootPart)
         if not touched then
             task.wait(0.2)
             continue
         end
 
-        -- Give the game time to process the portal touch.
-        task.wait(0.2)
-
-        if not helperRunning
-            or workerId ~= arenaWorkerId then
-
-            return
-        end
-
-        -- Check whether the teleport succeeded.
-        character =
-            getCharacter(LocalPlayer)
-
-        if character then
-
-            local newArena =
-                character:FindFirstChild("isInArena")
-
-            if newArena
-                and newArena.Value then
-
-                return
-            end
-        end
-
-        -- If the portal did not register, retry.
         task.wait(0.2)
     end
 end
