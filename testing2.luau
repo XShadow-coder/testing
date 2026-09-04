@@ -504,7 +504,6 @@ local function isTargetReady(player)
     local targetRoot =
         targetCharacter:FindFirstChild("HumanoidRootPart")
 
-    -- Same first validation as main.luau.
     if not isTargetInArena
         or not targetRoot
         or not targetHumanoid
@@ -513,7 +512,6 @@ local function isTargetReady(player)
         return false
     end
 
-    -- Same arena/killstreak logic as main.luau.
     if not isTargetInArenaV2
         and not isTargetInArena.Value then
 
@@ -557,10 +555,6 @@ local function getValidTarget()
 
     local targetKillstreak =
         targetCharacter:FindFirstChild("KillstreakLevel")
-
-    --==================================================
-    -- SAME LOGIC AS ORIGINAL
-    --==================================================
 
     if not targetIsInArena
         or not targetRoot
@@ -678,7 +672,6 @@ SavePosBtn.MouseButton1Click:Connect(function()
         return
     end
 
-    -- Only save while inside arena.
     if not isPlayerInArena(LocalPlayer) then
         notify("You must be in the arena to save a position.")
         return
@@ -842,7 +835,7 @@ local function triggerPortal(rootPart)
 
     if firetouchinterest then
 
-        local success =
+        local success, err =
             pcall(function()
 
                 firetouchinterest(
@@ -860,7 +853,16 @@ local function triggerPortal(rootPart)
                 )
             end)
 
-        return success
+        if not success then
+            warn(
+                "[KS Helper] firetouchinterest failed: "
+                .. tostring(err)
+            )
+
+            return false
+        end
+
+        return true
     end
 
     return false
@@ -897,44 +899,20 @@ local function enterArena(workerId)
             continue
         end
 
-        --==================================================
-        -- OUR ARENA VALUE
-        --==================================================
-
         local isInArena =
             character:FindFirstChild("isInArena")
 
-        if not isInArena then
-            task.wait(0.2)
-            continue
-        end
+        -- Already inside the arena.
+        if isInArena
+            and isInArena.Value then
 
-        if isInArena.Value then
             return
         end
 
         --==================================================
-        -- PLAYER MODE
-        --==================================================
-
-        if targetMode == "Player" then
-
-            if not targetPlayer
-                or targetPlayer.Parent ~= Players then
-
-                task.wait(0.2)
-                continue
-            end
-
-            -- Use the original target detection.
-            if not isTargetReady(targetPlayer) then
-                task.wait(0.2)
-                continue
-            end
-        end
-
-        --==================================================
-        -- TOUCH PORTAL
+        -- IMPORTANT:
+        -- Do NOT check the target here.
+        -- Enter the arena directly through Teleport1.
         --==================================================
 
         local touched =
@@ -945,13 +923,16 @@ local function enterArena(workerId)
             continue
         end
 
-        -- Requested delay.
+        -- Give the game time to process the portal touch.
         task.wait(0.2)
 
-        --==================================================
-        -- CHECK AFTER TELEPORT
-        --==================================================
+        if not helperRunning
+            or workerId ~= arenaWorkerId then
 
+            return
+        end
+
+        -- Check whether the teleport succeeded.
         character =
             getCharacter(LocalPlayer)
 
@@ -967,7 +948,7 @@ local function enterArena(workerId)
             end
         end
 
-        -- Retry.
+        -- If the portal did not register, retry.
         task.wait(0.2)
     end
 end
@@ -980,7 +961,10 @@ end
 local function followLoop()
 
     while helperRunning
-        and targetPlayer do
+        and (
+            targetMode == "Position"
+            or targetPlayer
+        ) do
 
         --==================================================
         -- LOCAL CHARACTER
@@ -1073,7 +1057,7 @@ local function followLoop()
 
             if resetEvent then
 
-                local success =
+                local success, err =
                     pcall(function()
                         resetEvent:FireServer()
                     end)
@@ -1084,6 +1068,13 @@ local function followLoop()
 
                     currentRagdolls = 0
                     stats_Resets += 1
+
+                else
+
+                    warn(
+                        "[KS Helper] Reset failed: "
+                        .. tostring(err)
+                    )
                 end
             end
         end
@@ -1102,6 +1093,13 @@ local function followLoop()
         --==================================================
 
         if targetMode == "Player" then
+
+            if not targetPlayer
+                or targetPlayer.Parent ~= Players then
+
+                task.wait()
+                continue
+            end
 
             local targetCharacter =
                 targetPlayer.Character
@@ -1128,7 +1126,7 @@ local function followLoop()
                 targetCharacter:FindFirstChild("KillstreakLevel")
 
             --==================================================
-            -- EXACT ORIGINAL VALIDATION
+            -- ORIGINAL VALIDATION
             --==================================================
 
             if not isTargetInArena
@@ -1148,7 +1146,7 @@ local function followLoop()
             end
 
             --==================================================
-            -- EXACT ORIGINAL TELEPORT
+            -- ORIGINAL TELEPORT
             --==================================================
 
             if not isCurrentlyRagdolled then
@@ -1250,14 +1248,13 @@ StartBtn.MouseButton1Click:Connect(function()
 
     resetStatsUI()
 
-    -- New arena worker.
     arenaWorkerId += 1
 
     local workerId =
         arenaWorkerId
 
     --==================================================
-    -- INDEPENDENT LOOPS
+    -- START WORKERS
     --==================================================
 
     task.spawn(updateStatsLoop)
@@ -1283,7 +1280,7 @@ StopBtn.MouseButton1Click:Connect(function()
 
     helperRunning = false
 
-    -- Invalidate arena workers.
+    -- Invalidate active arena workers.
     arenaWorkerId += 1
 
     notify("Helper stopped.")
@@ -1373,7 +1370,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         return
     end
 
-    -- Invalidate old arena worker.
+    -- Invalidate previous worker.
     arenaWorkerId += 1
 
     local workerId =
@@ -1385,7 +1382,6 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 
     task.spawn(function()
 
-        -- Wait for the new character.
         local root =
             character:WaitForChild(
                 "HumanoidRootPart",
@@ -1396,7 +1392,6 @@ LocalPlayer.CharacterAdded:Connect(function(character)
             return
         end
 
-        -- Requested 0.2 second delay.
         task.wait(0.2)
 
         if not helperRunning
@@ -1405,7 +1400,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
             return
         end
 
-        -- Start trying to enter arena.
+        -- Directly use Teleport1 again after respawn.
         enterArena(workerId)
     end)
 end)
