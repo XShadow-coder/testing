@@ -501,7 +501,7 @@ local function isTargetReady(player)
     local targetRoot =
         targetCharacter:FindFirstChild("HumanoidRootPart")
 
-    if not isTargetInArena
+        if not isTargetInArena
         or not targetRoot
         or not targetHumanoid
         or targetHumanoid.Health <= 0 then
@@ -509,7 +509,7 @@ local function isTargetReady(player)
         return false
     end
 
-
+    if not isTargetInArena.Value then
         return false
     end
 
