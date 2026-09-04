@@ -33,7 +33,7 @@ local LocalPlayer = cloneref(Players.LocalPlayer)
 local guiParent = (gethui and gethui()) or CoreGui:FindFirstChild("RobloxGui") or CoreGui
 
 local function randomString()
-	local length = math.random(10, 20)
+	local length = math.random(10,20)
 	local array = {}
 	for i = 1, length do
 		array[i] = string.char(math.random(32, 126))
@@ -41,292 +41,185 @@ local function randomString()
 	return table.concat(array)
 end
 
--- === STILE & COLORI ===
-local THEME = {
-    Background = Color3.fromRGB(24, 24, 28),
-    Header = Color3.fromRGB(32, 32, 38),
-    Card = Color3.fromRGB(36, 36, 44),
-    InputBg = Color3.fromRGB(44, 44, 54),
-    Border = Color3.fromRGB(55, 55, 68),
-    Text = Color3.fromRGB(240, 240, 240),
-    TextDim = Color3.fromRGB(160, 160, 175),
-    AccentGreen = Color3.fromRGB(46, 160, 67),
-    AccentRed = Color3.fromRGB(218, 54, 51),
-    AccentBlue = Color3.fromRGB(45, 110, 210),
-    ButtonHover = Color3.fromRGB(50, 50, 62)
-}
-
 -- === INTERFACCIA GRAFICA ===
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = randomString()
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = guiParent
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = randomString()
-MainFrame.Size = UDim2.new(0, 300, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -155)
-MainFrame.BackgroundColor3 = THEME.Background
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
+local Frame = Instance.new("Frame")
+Frame.Name = randomString()
+Frame.Size = UDim2.new(0, 280, 0, 280)
+Frame.Position = UDim2.new(0.5, -140, 0.5, -140)
+Frame.BackgroundColor3 = Color3.fromRGB(36, 36, 37)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
 
-local MainUICorner = Instance.new("UICorner")
-MainUICorner.CornerRadius = UDim.new(0, 10)
-MainUICorner.Parent = MainFrame
+local UICorner = Instance.new("UICorner")
+UICorner.Name = randomString()
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Frame
 
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = THEME.Border
-MainStroke.Thickness = 1
-MainStroke.Parent = MainFrame
-
--- Top Bar / Header
-local HeaderBar = Instance.new("Frame")
-HeaderBar.Name = randomString()
-HeaderBar.Size = UDim2.new(1, 0, 0, 36)
-HeaderBar.BackgroundColor3 = THEME.Header
-HeaderBar.BorderSizePixel = 0
-HeaderBar.Parent = MainFrame
-
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 10)
-HeaderCorner.Parent = HeaderBar
-
--- Fix per coprire i bordi arrotondati inferiori dell'header
-local HeaderFix = Instance.new("Frame")
-HeaderFix.Size = UDim2.new(1, 0, 0, 10)
-HeaderFix.Position = UDim2.new(0, 0, 1, -10)
-HeaderFix.BackgroundColor3 = THEME.Header
-HeaderFix.BorderSizePixel = 0
-HeaderFix.Parent = HeaderBar
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Name = randomString()
+UIStroke.Color = Color3.fromRGB(60, 60, 60)
+UIStroke.Parent = Frame
 
 local Title = Instance.new("TextLabel")
 Title.Name = randomString()
-Title.Size = UDim2.new(1, -70, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Size = UDim2.new(1, -30, 0, 30)
+Title.Position = UDim2.new(0, 25, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "⚡ Killstreak Helper"
-Title.TextColor3 = THEME.Text
+Title.Text = "Killstreak Helper V2"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
+Title.TextSize = 16
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = HeaderBar
+Title.Parent = Frame
 
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
-MinimizeBtn.Position = UDim2.new(1, -56, 0.5, -12)
-MinimizeBtn.BackgroundColor3 = THEME.InputBg
-MinimizeBtn.Text = "—"
-MinimizeBtn.TextColor3 = THEME.Text
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextSize = 12
-MinimizeBtn.Parent = HeaderBar
+local Minimize = Instance.new("TextButton")
+Minimize.Name = randomString()
+Minimize.Size = UDim2.new(0, 25, 0, 25)
+Minimize.Position = UDim2.new(1, -60, 0, 2)
+Minimize.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Minimize.Text = "_"
+Minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
+Minimize.Font = Enum.Font.GothamBold
+Minimize.TextSize = 18
+Minimize.Parent = Frame
+local MinimizeUICorner = Instance.new("UICorner")
+MinimizeUICorner.CornerRadius = UDim.new(0, 6)
+MinimizeUICorner.Parent = Minimize
 
-local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 6)
-MinCorner.Parent = MinimizeBtn
+local Close = Instance.new("TextButton")
+Close.Name = randomString()
+Close.Size = UDim2.new(0, 25, 0, 25)
+Close.Position = UDim2.new(1, -30, 0, 2)
+Close.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Close.Text = "X"
+Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 14
+Close.Parent = Frame
+local CloseUICorner = Instance.new("UICorner")
+CloseUICorner.CornerRadius = UDim.new(0, 6)
+CloseUICorner.Parent = Close
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 24, 0, 24)
-CloseBtn.Position = UDim2.new(1, -28, 0.5, -12)
-CloseBtn.BackgroundColor3 = THEME.AccentRed
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = THEME.Text
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 12
-CloseBtn.Parent = HeaderBar
+-- RIGA 1: Selezione Modalità
+local ModeBtn = Instance.new("TextButton")
+ModeBtn.Name = randomString()
+ModeBtn.Position = UDim2.new(0.5, -130, 0, 40)
+ModeBtn.Size = UDim2.new(0, 260, 0, 30)
+ModeBtn.Text = "Target: Player"
+ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+ModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ModeBtn.Font = Enum.Font.GothamBold
+ModeBtn.TextSize = 14
+ModeBtn.Parent = Frame
 
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseBtn
+-- RIGA 2: Nome Player
+local TextBox = Instance.new("TextBox")
+TextBox.Name = randomString()
+TextBox.Position = UDim2.new(0.5, -130, 0, 80)
+TextBox.Size = UDim2.new(0, 260, 0, 30)
+TextBox.Text = ""
+TextBox.PlaceholderText = "Player's name"
+TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Font = Enum.Font.Gotham
+TextBox.TextSize = 14
+TextBox.Parent = Frame
 
--- Container Contenuti
-local ContentContainer = Instance.new("Frame")
-ContentContainer.Name = randomString()
-ContentContainer.Size = UDim2.new(1, -24, 1, -48)
-ContentContainer.Position = UDim2.new(0, 12, 0, 42)
-ContentContainer.BackgroundTransparency = 1
-ContentContainer.Parent = MainFrame
+-- RIGA 3: Salva Posizione
+local SetPosBtn = Instance.new("TextButton")
+SetPosBtn.Name = randomString()
+SetPosBtn.Position = UDim2.new(0.5, -130, 0, 120)
+SetPosBtn.Size = UDim2.new(0, 260, 0, 30)
+SetPosBtn.Text = "Save Current Position"
+SetPosBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+SetPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SetPosBtn.Font = Enum.Font.GothamBold
+SetPosBtn.TextSize = 14
+SetPosBtn.Parent = Frame
 
--- 1. Selettore Modalità Target
-local ModeSelector = Instance.new("TextButton")
-ModeSelector.Size = UDim2.new(1, 0, 0, 32)
-ModeSelector.Position = UDim2.new(0, 0, 0, 0)
-ModeSelector.BackgroundColor3 = THEME.AccentBlue
-ModeSelector.Text = "🎯 Mode: Follow Player"
-ModeSelector.TextColor3 = THEME.Text
-ModeSelector.Font = Enum.Font.GothamBold
-ModeSelector.TextSize = 13
-ModeSelector.Parent = ContentContainer
+-- RIGA 4: Reset & Ragdoll Limit
+local ToggleReset = Instance.new("TextButton")
+ToggleReset.Name = randomString()
+ToggleReset.Position = UDim2.new(0.5, -130, 0, 160)
+ToggleReset.Size = UDim2.new(0, 150, 0, 30)
+ToggleReset.Text = "Auto-Reset: ON"
+ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+ToggleReset.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleReset.Font = Enum.Font.GothamBold
+ToggleReset.TextSize = 14
+ToggleReset.Parent = Frame
 
-local ModeCorner = Instance.new("UICorner")
-ModeCorner.CornerRadius = UDim.new(0, 7)
-ModeCorner.Parent = ModeSelector
+local RagdollInput = Instance.new("TextBox")
+RagdollInput.Name = randomString()
+RagdollInput.Position = UDim2.new(0.5, 30, 0, 160)
+RagdollInput.Size = UDim2.new(0, 100, 0, 30)
+RagdollInput.Text = "1"
+RagdollInput.PlaceholderText = "Limit"
+RagdollInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+RagdollInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+RagdollInput.Font = Enum.Font.GothamBold
+RagdollInput.TextSize = 14
+RagdollInput.Parent = Frame
 
--- 2. Input per Player
-local PlayerInput = Instance.new("TextBox")
-PlayerInput.Size = UDim2.new(1, 0, 0, 32)
-PlayerInput.Position = UDim2.new(0, 0, 0, 38)
-PlayerInput.PlaceholderText = "Enter target player name..."
-PlayerInput.Text = ""
-PlayerInput.BackgroundColor3 = THEME.InputBg
-PlayerInput.TextColor3 = THEME.Text
-PlayerInput.PlaceholderColor3 = THEME.TextDim
-PlayerInput.Font = Enum.Font.Gotham
-PlayerInput.TextSize = 13
-PlayerInput.Parent = ContentContainer
+-- RIGA 5: Start & Stop
+local Start = Instance.new("TextButton")
+Start.Name = randomString()
+Start.Position = UDim2.new(0.5, -130, 0, 200)
+Start.Size = UDim2.new(0, 125, 0, 30)
+Start.Text = "Start"
+Start.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+Start.TextColor3 = Color3.fromRGB(255, 255, 255)
+Start.Font = Enum.Font.GothamBold
+Start.TextSize = 14
+Start.Parent = Frame
 
-local PlayerInputCorner = Instance.new("UICorner")
-PlayerInputCorner.CornerRadius = UDim.new(0, 7)
-PlayerInputCorner.Parent = PlayerInput
+local Stop = Instance.new("TextButton")
+Stop.Name = randomString()
+Stop.Position = UDim2.new(0.5, 5, 0, 200)
+Stop.Size = UDim2.new(0, 125, 0, 30)
+Stop.Text = "Stop"
+Stop.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+Stop.TextColor3 = Color3.fromRGB(255, 255, 255)
+Stop.Font = Enum.Font.GothamBold
+Stop.TextSize = 14
+Stop.Parent = Frame
 
--- 2b. Bottone Posizione (Visibile solo in modalità Position)
-local PosButton = Instance.new("TextButton")
-PosButton.Size = UDim2.new(1, 0, 0, 32)
-PosButton.Position = UDim2.new(0, 0, 0, 38)
-PosButton.Text = "📍 Save Current Position"
-PosButton.BackgroundColor3 = THEME.Card
-PosButton.TextColor3 = THEME.Text
-PosButton.Font = Enum.Font.GothamBold
-PosButton.TextSize = 13
-PosButton.Visible = false
-PosButton.Parent = ContentContainer
+-- RIGA 6: Extra
+local IY = Instance.new("TextButton")
+IY.Name = randomString()
+IY.Position = UDim2.new(0.5, -130, 0, 240)
+IY.Size = UDim2.new(0, 260, 0, 25)
+IY.Text = "Execute Infinite Yield"
+IY.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+IY.TextColor3 = Color3.fromRGB(255, 255, 255)
+IY.Font = Enum.Font.GothamBold
+IY.TextSize = 14
+IY.Parent = Frame
+local IY_UICorner = Instance.new("UICorner")
+IY_UICorner.CornerRadius = UDim.new(0, 6)
+IY_UICorner.Parent = IY
 
-local PosCorner = Instance.new("UICorner")
-PosCorner.CornerRadius = UDim.new(0, 7)
-PosCorner.Parent = PosButton
-
-local PosStroke = Instance.new("UIStroke")
-PosStroke.Color = THEME.Border
-PosStroke.Parent = PosButton
-
--- 3. Sezione Auto-Reset & Ragdoll Limit
-local ResetFrame = Instance.new("Frame")
-ResetFrame.Size = UDim2.new(1, 0, 0, 34)
-ResetFrame.Position = UDim2.new(0, 0, 0, 76)
-ResetFrame.BackgroundTransparency = 1
-ResetFrame.Parent = ContentContainer
-
-local ToggleResetBtn = Instance.new("TextButton")
-ToggleResetBtn.Size = UDim2.new(0, 160, 1, 0)
-ToggleResetBtn.Position = UDim2.new(0, 0, 0, 0)
-ToggleResetBtn.Text = "Auto-Reset: ON"
-ToggleResetBtn.BackgroundColor3 = THEME.AccentGreen
-ToggleResetBtn.TextColor3 = THEME.Text
-ToggleResetBtn.Font = Enum.Font.GothamBold
-ToggleResetBtn.TextSize = 12
-ToggleResetBtn.Parent = ResetFrame
-
-local ToggleResetCorner = Instance.new("UICorner")
-ToggleResetCorner.CornerRadius = UDim.new(0, 7)
-ToggleResetCorner.Parent = ToggleResetBtn
-
-local RagdollBox = Instance.new("TextBox")
-RagdollBox.Size = UDim2.new(0, 110, 1, 0)
-RagdollBox.Position = UDim2.new(1, -110, 0, 0)
-RagdollBox.Text = "1"
-RagdollBox.PlaceholderText = "Limit"
-RagdollBox.BackgroundColor3 = THEME.InputBg
-RagdollBox.TextColor3 = THEME.Text
-RagdollBox.Font = Enum.Font.GothamBold
-RagdollBox.TextSize = 13
-RagdollBox.Parent = ResetFrame
-
-local RagdollCorner = Instance.new("UICorner")
-RagdollCorner.CornerRadius = UDim.new(0, 7)
-RagdollCorner.Parent = RagdollBox
-
-local RagdollLabel = Instance.new("TextLabel")
-RagdollLabel.Size = UDim2.new(1, 0, 0, 12)
-RagdollLabel.Position = UDim2.new(0, 0, -0.4, 0)
-RagdollLabel.BackgroundTransparency = 1
-RagdollLabel.Text = "Max Ragdolls:"
-RagdollLabel.TextColor3 = THEME.TextDim
-RagdollLabel.Font = Enum.Font.Gotham
-RagdollLabel.TextSize = 10
-RagdollLabel.TextXAlignment = Enum.TextXAlignment.Right
-RagdollLabel.Parent = RagdollBox
-
--- 4. Bottoni Start / Stop
-local ActionFrame = Instance.new("Frame")
-ActionFrame.Size = UDim2.new(1, 0, 0, 36)
-ActionFrame.Position = UDim2.new(0, 0, 0, 120)
-ActionFrame.BackgroundTransparency = 1
-ActionFrame.Parent = ContentContainer
-
-local StartBtn = Instance.new("TextButton")
-StartBtn.Size = UDim2.new(0.48, 0, 1, 0)
-StartBtn.Position = UDim2.new(0, 0, 0, 0)
-StartBtn.Text = "▶ Start"
-StartBtn.BackgroundColor3 = THEME.AccentGreen
-StartBtn.TextColor3 = THEME.Text
-StartBtn.Font = Enum.Font.GothamBold
-StartBtn.TextSize = 14
-StartBtn.Parent = ActionFrame
-
-local StartCorner = Instance.new("UICorner")
-StartCorner.CornerRadius = UDim.new(0, 7)
-StartCorner.Parent = StartBtn
-
-local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(0.48, 0, 1, 0)
-StopBtn.Position = UDim2.new(0.52, 0, 0, 0)
-StopBtn.Text = "⏹ Stop"
-StopBtn.BackgroundColor3 = THEME.AccentRed
-StopBtn.TextColor3 = THEME.Text
-StopBtn.Font = Enum.Font.GothamBold
-StopBtn.TextSize = 14
-StopBtn.Parent = ActionFrame
-
-local StopCorner = Instance.new("UICorner")
-StopCorner.CornerRadius = UDim.new(0, 7)
-StopCorner.Parent = StopBtn
-
--- 5. Utility
-local IYBtn = Instance.new("TextButton")
-IYBtn.Size = UDim2.new(1, 0, 0, 30)
-IYBtn.Position = UDim2.new(0, 0, 0, 166)
-IYBtn.Text = "🌐 Load Infinite Yield"
-IYBtn.BackgroundColor3 = THEME.Card
-IYBtn.TextColor3 = THEME.Text
-IYBtn.Font = Enum.Font.GothamMedium
-IYBtn.TextSize = 12
-IYBtn.Parent = ContentContainer
-
-local IYCorner = Instance.new("UICorner")
-IYCorner.CornerRadius = UDim.new(0, 7)
-IYCorner.Parent = IYBtn
-
-local IYStroke = Instance.new("UIStroke")
-IYStroke.Color = THEME.Border
-IYStroke.Parent = IYBtn
-
--- Label di Stato
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-StatusLabel.Position = UDim2.new(0, 0, 0, 202)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Status: Ready"
-StatusLabel.TextColor3 = THEME.TextDim
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 11
-StatusLabel.Parent = ContentContainer
-
--- === FUNZIONE NOTIFICHE ===
 local function notify(message)
     StarterGui:SetCore("SendNotification", {
         Title = "KS Helper",
         Text = message,
-        Duration = 2.5
+        Duration = 3
     })
 end
 
--- === LOGICA E STATO ===
+-- === VARIABILI LOGICA ===
 local helperRunning = false
 local autoResetEnabled = true
 local targetPlayer = nil
-local targetMode = "Player" -- "Player" o "Position"
+
+local targetMode = "Player" -- o "Position"
 local savedCFrame = nil
 
 local ragdollLimit = 1
@@ -334,61 +227,54 @@ local currentRagdolls = 0
 local wasRagdolled = false
 local alreadyReset = false
 
--- === LOGICA DELLA UI ===
-ModeSelector.MouseButton1Click:Connect(function()
+-- === EVENTI BOTTONI ===
+ModeBtn.MouseButton1Click:Connect(function()
     if targetMode == "Player" then
         targetMode = "Position"
-        ModeSelector.Text = "📍 Mode: Fixed Position"
-        ModeSelector.BackgroundColor3 = Color3.fromRGB(120, 70, 190)
-        PlayerInput.Visible = false
-        PosButton.Visible = true
+        ModeBtn.Text = "Target: Saved Position"
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 150)
+        TextBox.PlaceholderText = "Mode: Position (Name ignored)"
     else
         targetMode = "Player"
-        ModeSelector.Text = "🎯 Mode: Follow Player"
-        ModeSelector.BackgroundColor3 = THEME.AccentBlue
-        PlayerInput.Visible = true
-        PosButton.Visible = false
+        ModeBtn.Text = "Target: Player"
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+        TextBox.PlaceholderText = "Player's name"
     end
 end)
 
-PosButton.MouseButton1Click:Connect(function()
+SetPosBtn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         savedCFrame = char.HumanoidRootPart.CFrame
-        PosButton.Text = "✓ Position Saved!"
-        PosButton.BackgroundColor3 = THEME.AccentGreen
-        task.delay(1.5, function()
-            PosButton.Text = "📍 Update Saved Position"
-            PosButton.BackgroundColor3 = THEME.Card
-        end)
+        notify("Position Saved successfully!")
     else
         notify("Character not found!")
     end
 end)
 
-RagdollBox.FocusLost:Connect(function()
-    local num = tonumber(RagdollBox.Text)
+RagdollInput.FocusLost:Connect(function()
+    local num = tonumber(RagdollInput.Text)
     if num and num > 0 then
         ragdollLimit = math.floor(num)
-        RagdollBox.Text = tostring(ragdollLimit)
+        RagdollInput.Text = tostring(ragdollLimit)
     else
-        RagdollBox.Text = tostring(ragdollLimit)
-        notify("Enter a valid number!")
+        RagdollInput.Text = tostring(ragdollLimit)
+        notify("Invalid number for ragdoll limit")
     end
 end)
 
-ToggleResetBtn.MouseButton1Click:Connect(function()
+ToggleReset.MouseButton1Click:Connect(function()
     autoResetEnabled = not autoResetEnabled
     if autoResetEnabled then
-        ToggleResetBtn.Text = "Auto-Reset: ON"
-        ToggleResetBtn.BackgroundColor3 = THEME.AccentGreen
+        ToggleReset.Text = "Auto-Reset: ON"
+        ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
     else
-        ToggleResetBtn.Text = "Auto-Reset: OFF"
-        ToggleResetBtn.BackgroundColor3 = THEME.AccentRed
+        ToggleReset.Text = "Auto-Reset: OFF"
+        ToggleReset.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
     end
 end)
 
-IYBtn.MouseButton1Click:Connect(function()
+IY.MouseButton1Click:Connect(function()
     if getgenv().IY_LOADED then
         notify("Infinite Yield is already running!")
         return
@@ -399,29 +285,12 @@ IYBtn.MouseButton1Click:Connect(function()
     if not success then notify("Infinite Yield failed to load") end
 end)
 
-MinimizeBtn.MouseButton1Click:Connect(function()
-    local isMinimized = ContentContainer.Visible
-    ContentContainer.Visible = not isMinimized
-    MainFrame.Size = isMinimized and UDim2.new(0, 300, 0, 36) or UDim2.new(0, 300, 0, 310)
-    MinimizeBtn.Text = isMinimized and "+" or "—"
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    helperRunning = false
-    if ScreenGui then
-        ScreenGui:Destroy()
-    end
-    getgenv().KsHelper_Loaded = nil
-end)
-
--- === DISABILITA PORTALE BRAZIL ===
 for _, part in ipairs(workspace:WaitForChild("Lobby"):WaitForChild("brazil"):GetDescendants()) do
     if part:IsA("BasePart") then
         part.CanTouch = false
     end
 end
 
--- === LOGICA CORE GAMEPLAY ===
 local function findPlayer(nickname)
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Name:lower():find(nickname:lower()) or player.DisplayName:lower():find(nickname:lower()) then
@@ -444,22 +313,20 @@ local function followLoop()
         local isInArena = character:FindFirstChild("isInArena")
         if not isInArena or not isInArena.Value then continue end
 
-        -- Contatore Ragdoll
+        -- LOGICA RAGDOLL
         local ragdolled = character:FindFirstChild("Ragdolled")
         local isCurrentlyRagdolled = (ragdolled and ragdolled.Value)
 
         if isCurrentlyRagdolled and not wasRagdolled then
             wasRagdolled = true
             currentRagdolls = currentRagdolls + 1
-            StatusLabel.Text = "Status: Ragdolled (" .. currentRagdolls .. "/" .. ragdollLimit .. ")"
 
             if autoResetEnabled and currentRagdolls >= ragdollLimit then
                 local resetEvent = LocalPlayer:FindFirstChild("Reset")
                 if not alreadyReset and resetEvent then
                     resetEvent:FireServer()
                     alreadyReset = true
-                    currentRagdolls = 0
-                    StatusLabel.Text = "Status: Auto-Resetting..."
+                    currentRagdolls = 0 
                 end
             end
         elseif not isCurrentlyRagdolled then
@@ -471,7 +338,7 @@ local function followLoop()
             continue
         end
 
-        -- Teletrasporto / Movimento
+        -- LOGICA MOVIMENTO
         if targetMode == "Player" then
             if not targetPlayer then continue end
             local targetCharacter = targetPlayer.Character
@@ -487,29 +354,28 @@ local function followLoop()
 
             if not isCurrentlyRagdolled then
                 rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -4)
-                StatusLabel.Text = "Status: Following " .. targetPlayer.DisplayName
             end
 
         elseif targetMode == "Position" then
             if savedCFrame and not isCurrentlyRagdolled then
                 rootPart.CFrame = savedCFrame
-                StatusLabel.Text = "Status: Holding Position"
             end
         end
     end
 end
 
+-- LOGICA ENTRATA ARENA CON FIRETOUCHINTEREST
 local function enterArena()
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local rootPart = character:WaitForChild("HumanoidRootPart")
     local isInArena = character:WaitForChild("isInArena")
 
-    StatusLabel.Text = "Status: Waiting for Arena..."
-
     while helperRunning do
         if isInArena.Value then
             break 
         end
+
+        local shouldTeleport = false
 
         if targetMode == "Player" and targetPlayer then
             local tChar = targetPlayer.Character
@@ -518,17 +384,25 @@ local function enterArena()
                 local tArena2 = tChar:FindFirstChild("KillstreakLevel")
 
                 if (tArena and tArena.Value) or tArena2 then
-                    local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
-                    if portal and portal:IsA("BasePart") then
-                        rootPart.CFrame = portal.CFrame
-                    end
-                    break
+                    shouldTeleport = true
                 end
             end
         elseif targetMode == "Position" then
+            shouldTeleport = true
+        end
+        
+        if shouldTeleport then
             local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
             if portal and portal:IsA("BasePart") then
-                rootPart.CFrame = portal.CFrame
+                -- Uso di firetouchinterest invece del CFrame
+                if firetouchinterest then
+                    firetouchinterest(rootPart, portal, 0)
+                    task.wait()
+                    firetouchinterest(rootPart, portal, 1)
+                else
+                    -- Fallback nel caso in cui l'executor non supporti firetouchinterest
+                    rootPart.CFrame = portal.CFrame
+                end
             end
             break
         end
@@ -542,21 +416,21 @@ end
 
 local function startHelper()
     if targetMode == "Player" then
-        local nameInput = PlayerInput.Text
+        local nameInput = TextBox.Text
         if nameInput == "" then
-            notify("Please enter a player's name!")
+            notify("Enter a player's name!")
             return
         end
 
         local player = findPlayer(nameInput)
         if not player then
-            notify("Player not found in server!")
+            notify("Player not found!")
             return
         end
         targetPlayer = player
     else
         if not savedCFrame then
-            notify("Save a position first!")
+            notify("You need to save a position first!")
             return
         end
     end
@@ -570,8 +444,27 @@ end
 
 local function stopHelper()
     helperRunning = false
-    StatusLabel.Text = "Status: Stopped"
 end
+
+Minimize.MouseButton1Click:Connect(function()
+    local minimized = ModeBtn.Visible == false
+    for _, child in ipairs(Frame:GetChildren()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+            if child ~= Title and child ~= Close and child ~= Minimize then
+                child.Visible = minimized
+            end
+        end
+    end
+    Frame.Size = minimized and UDim2.new(0, 280, 0, 280) or UDim2.new(0, 280, 0, 30)
+end)
+
+Close.MouseButton1Click:Connect(function()
+    stopHelper()
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+    getgenv().KsHelper_Loaded = nil
+end)
 
 LocalPlayer.CharacterAdded:Connect(function()
     if helperRunning then
@@ -580,5 +473,5 @@ LocalPlayer.CharacterAdded:Connect(function()
     end
 end)
 
-StartBtn.MouseButton1Click:Connect(startHelper)
-StopBtn.MouseButton1Click:Connect(stopHelper)
+Start.MouseButton1Click:Connect(startHelper)
+Stop.MouseButton1Click:Connect(stopHelper)
