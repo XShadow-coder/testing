@@ -70,7 +70,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 0, 35)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Killstreak Helper V3"
+Title.Text = "Killstreak Helper V3.1"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
@@ -155,7 +155,7 @@ SavePosBtn.TextSize = 13
 SavePosBtn.Parent = PosFrame
 Instance.new("UICorner", SavePosBtn).CornerRadius = UDim.new(0, 6)
 
--- Auto Reset Container (Dimensioni corrette per non uscire fuori dai 300px)
+-- Auto Reset Container (Fix layout per non far uscire l'input)
 local ToggleReset = Instance.new("TextButton")
 ToggleReset.Position = UDim2.new(0, 15, 0, 125)
 ToggleReset.Size = UDim2.new(0.65, -5, 0, 30)
@@ -287,9 +287,16 @@ end)
 SavePosBtn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
+        local isInArena = char:FindFirstChild("isInArena")
+        if not isInArena or not isInArena.Value then
+            notify("You must be in the arena to save a position!")
+            return
+        end
+        
         savedCFrame = char.HumanoidRootPart.CFrame
         PosLabel.Text = string.format("%.1f, %.1f, %.1f", savedCFrame.X, savedCFrame.Y, savedCFrame.Z)
         PosLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notify("Position saved successfully!")
     else
         notify("Character not found!")
     end
@@ -302,7 +309,7 @@ RagdollInput.FocusLost:Connect(function()
         RagdollInput.Text = tostring(ragdollLimit)
     else
         RagdollInput.Text = tostring(ragdollLimit)
-        notify("Invalid number")
+        notify("Invalid limit number")
     end
 end)
 
