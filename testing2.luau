@@ -1107,53 +1107,7 @@ local function followLoop()
                 end)
             end
 
-            --==================================================
-            -- ORIGINAL TARGET VARIABLES
-            --==================================================
-
-            local isTargetInArena =
-                targetCharacter:FindFirstChild("isInArena")
-
-            local targetHumanoid =
-                targetCharacter:FindFirstChildOfClass("Humanoid")
-
-            local targetRoot =
-                targetCharacter:FindFirstChild("HumanoidRootPart")
-
-            --==================================================
-            -- ORIGINAL VALIDATION
-            --==================================================
-
-            if not isTargetInArena
-                or not targetRoot
-                or not targetHumanoid
-                or targetHumanoid.Health <= 0 then
-
-                task.wait()
-                continue
-            end
-
-            if not isTargetInArena.Value then
-                task.wait()
-                continue
-            end
-
-            --==================================================
-            -- ORIGINAL TELEPORT
-            --==================================================
-
-            if not isCurrentlyRagdolled then
-
-                pcall(function()
-
-                    rootPart.CFrame =
-                        targetRoot.CFrame
-                        * CFrame.new(0, 0, -4)
-
-                end)
-            end
-
-        --==================================================
+                --==================================================
         -- POSITION MODE
         --==================================================
 
