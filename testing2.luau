@@ -14,9 +14,10 @@ local sbPlaceIds = {
     [78262906459073] = true,
 }
 
-local ARENA_RETRY_DELAY = 0.2
 local POST_RESPAWN_DELAY = 0.2
+local ARENA_RETRY_DELAY = 0.2
 local FOLLOW_DELAY = 0.05
+local CHARACTER_CHECK_DELAY = 0.05
 
 --==================================================
 -- PLACE CHECK
@@ -29,9 +30,17 @@ if not sbPlaceIds[game.PlaceId] then
         return MarketplaceService:GetProductInfo(game.PlaceId)
     end)
 
-    local gameName = success and info and info.Name or "another game"
+    local gameName = "another game"
 
-    print("This script is for Slap Battles, but you are in " .. gameName)
+    if success and info and info.Name then
+        gameName = info.Name
+    end
+
+    print(
+        "This script is for Slap Battles, but you are in "
+            .. gameName
+    )
+
     return
 end
 
@@ -48,18 +57,22 @@ pcall(function()
 end)
 
 --==================================================
--- SERVICES
+-- GAME LOADED
 --==================================================
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
+--==================================================
+-- SERVICES
+--==================================================
+
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local StarterGui = cloneref(game:GetService("StarterGui"))
 local Players = cloneref(game:GetService("Players"))
 
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = cloneref(Players.LocalPlayer)
 
 local guiParent =
     (gethui and gethui())
@@ -109,16 +122,32 @@ local function getRoot(character)
     return character:FindFirstChild("HumanoidRootPart")
 end
 
-local function isCharacterInArena(character)
+local function getHumanoid(character)
     if not character then
-        return false
+        return nil
     end
 
-    local arenaValue = character:FindFirstChild("isInArena")
+    return character:FindFirstChildOfClass("Humanoid")
+end
 
-    return arenaValue ~= nil
-        and arenaValue:IsA("BoolValue")
-        and arenaValue.Value == true
+local function getArenaValue(character)
+    if not character then
+        return nil
+    end
+
+    local value = character:FindFirstChild("isInArena")
+
+    if value and value:IsA("BoolValue") then
+        return value
+    end
+
+    return nil
+end
+
+local function isInArena(character)
+    local value = getArenaValue(character)
+
+    return value ~= nil and value.Value == true
 end
 
 local function isTargetInArena(character)
@@ -131,11 +160,11 @@ local function isTargetInArena(character)
     if arenaValue
         and arenaValue:IsA("BoolValue")
         and arenaValue.Value then
+
         return true
     end
 
-    -- KillstreakLevel is retained as a fallback because
-    -- the original helper used it to identify an active target.
+    -- Keep the original helper's fallback.
     return character:FindFirstChild("KillstreakLevel") ~= nil
 end
 
@@ -147,6 +176,10 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = randomString()
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = guiParent
+
+--==================================================
+-- MAIN FRAME
+--==================================================
 
 local Frame = Instance.new("Frame")
 Frame.Name = randomString()
@@ -242,7 +275,7 @@ PlayerTextBox.Parent = Frame
 Instance.new("UICorner", PlayerTextBox).CornerRadius = UDim.new(0, 6)
 
 --==================================================
--- POSITION INPUT
+-- POSITION CONTAINER
 --==================================================
 
 local PosFrame = Instance.new("Frame")
@@ -266,7 +299,7 @@ PosLabel.Parent = PosFrame
 Instance.new("UICorner", PosLabel).CornerRadius = UDim.new(0, 6)
 
 local SavePosBtn = Instance.new("TextButton")
-SavePosBtn.Size = UDim2.new(0.38, 0, 1, 0)
+SavePosBtn.Size = UDim2.new(0.38, -5, 1, 0)
 SavePosBtn.Position = UDim2.new(0.62, 5, 0, 0)
 SavePosBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 SavePosBtn.Text = "Save Pos"
@@ -278,11 +311,11 @@ SavePosBtn.Parent = PosFrame
 Instance.new("UICorner", SavePosBtn).CornerRadius = UDim.new(0, 6)
 
 --==================================================
--- AUTO RESET
+-- AUTO RESET CONTAINER
 --==================================================
 
--- Dedicated container prevents the two controls from
--- exceeding the available Frame width.
+-- The container itself is constrained to the Frame.
+-- This prevents the label/button from exceeding the UI.
 local ResetContainer = Instance.new("Frame")
 ResetContainer.Position = UDim2.new(0, 15, 0, 125)
 ResetContainer.Size = UDim2.new(1, -30, 0, 30)
@@ -396,8 +429,9 @@ local stats_StartTime = 0
 local stats_Ragdolls = 0
 local stats_Resets = 0
 
--- Used to invalidate old arena workers after Stop/respawn.
-local arenaWorkerId = 0
+-- Every arena worker receives a unique token.
+-- Starting/stopping/respawning invalidates older workers.
+local arenaWorkerToken = 0
 
 --==================================================
 -- STATS
@@ -412,21 +446,19 @@ local function resetStatsUI()
 end
 
 local function updateStatsLoop()
-    local workerId = arenaWorkerId
-
-    while helperRunning and workerId == arenaWorkerId do
-        local activeTime = math.max(
+    while helperRunning do
+        local elapsed = math.max(
             0,
             math.floor(os.clock() - stats_StartTime)
         )
 
-        local mins = math.floor(activeTime / 60)
-        local secs = activeTime % 60
+        local minutes = math.floor(elapsed / 60)
+        local seconds = elapsed % 60
 
         StatsLabel.Text = string.format(
             "Time: %02d:%02d | Ragdolls: %d | Resets: %d",
-            mins,
-            secs,
+            minutes,
+            seconds,
             stats_Ragdolls,
             stats_Resets
         )
@@ -447,11 +479,12 @@ local function findPlayer(nickname)
     end
 
     for _, player in ipairs(Players:GetPlayers()) do
-        local name = player.Name:lower()
+        local username = player.Name:lower()
         local displayName = player.DisplayName:lower()
 
-        if name:find(nickname, 1, true)
+        if username:find(nickname, 1, true)
             or displayName:find(nickname, 1, true) then
+
             return player
         end
     end
@@ -490,22 +523,51 @@ local function triggerPortal(rootPart)
         return false
     end
 
-    if firetouchinterest then
-        local success = pcall(function()
-            firetouchinterest(rootPart, portal, 0)
-            task.wait()
-            firetouchinterest(rootPart, portal, 1)
-        end)
-
-        return success
+    if not firetouchinterest then
+        return false
     end
 
-    -- Fallback when firetouchinterest is unavailable.
     local success = pcall(function()
-        rootPart.CFrame = portal.CFrame
+        firetouchinterest(rootPart, portal, 0)
+
+        task.wait()
+
+        firetouchinterest(rootPart, portal, 1)
     end)
 
     return success
+end
+
+--==================================================
+-- TARGET READY CHECK
+--==================================================
+
+local function targetIsReady()
+    if targetMode ~= "Player" then
+        return true
+    end
+
+    if not targetPlayer or targetPlayer.Parent ~= Players then
+        return false
+    end
+
+    local character = targetPlayer.Character
+
+    if not character then
+        return false
+    end
+
+    local humanoid = getHumanoid(character)
+    local rootPart = getRoot(character)
+
+    if not humanoid
+        or humanoid.Health <= 0
+        or not rootPart then
+
+        return false
+    end
+
+    return isTargetInArena(character)
 end
 
 --==================================================
@@ -513,88 +575,83 @@ end
 --==================================================
 
 local function enterArena()
-    arenaWorkerId += 1
+    arenaWorkerToken += 1
 
-    local workerId = arenaWorkerId
+    local myToken = arenaWorkerToken
 
-    while helperRunning and workerId == arenaWorkerId do
+    while helperRunning and myToken == arenaWorkerToken do
+
+        --==========================================
+        -- WAIT FOR CHARACTER
+        --==========================================
+
         local character = getCharacter()
 
-        -- Character has not spawned yet.
         if not character then
-            local newCharacter = LocalPlayer.CharacterAdded:Wait()
-
-            if not helperRunning or workerId ~= arenaWorkerId then
-                return
-            end
-
-            character = newCharacter
-
-            -- Give the new character a short amount of time
-            -- to finish spawning before touching the portal.
-            task.wait(POST_RESPAWN_DELAY)
+            task.wait(CHARACTER_CHECK_DELAY)
+            continue
         end
 
-        if not helperRunning or workerId ~= arenaWorkerId then
-            return
-        end
-
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-
-        if not humanoid then
-            humanoid = character:WaitForChild("Humanoid", 5)
-        end
+        --==========================================
+        -- WAIT FOR ROOT
+        --==========================================
 
         local rootPart = getRoot(character)
 
         if not rootPart then
-            rootPart = character:WaitForChild("HumanoidRootPart", 5)
-        end
-
-        if not rootPart then
-            task.wait(ARENA_RETRY_DELAY)
+            task.wait(CHARACTER_CHECK_DELAY)
             continue
         end
 
-        -- Already in arena; no portal interaction is necessary.
-        if isCharacterInArena(character) then
+        --==========================================
+        -- ALREADY IN ARENA
+        --==========================================
+
+        if isInArena(character) then
             return
         end
 
-        -- In Player mode, wait until the selected target is active.
+        --==========================================
+        -- PLAYER MODE
+        --==========================================
+
         if targetMode == "Player" then
-            local player = targetPlayer
-
-            if not player or player.Parent ~= Players then
-                task.wait(ARENA_RETRY_DELAY)
-                continue
-            end
-
-            local targetCharacter = player.Character
-
-            if not targetCharacter
-                or not isTargetInArena(targetCharacter) then
+            if not targetIsReady() then
                 task.wait(ARENA_RETRY_DELAY)
                 continue
             end
         end
 
-        -- Touch the portal.
+        --==========================================
+        -- POSITION MODE
+        --==========================================
+
+        -- Position mode doesn't require a target.
+        -- The saved position has already been validated
+        -- when it was created.
+
+        --==========================================
+        -- PORTAL TOUCH
+        --==========================================
+
         triggerPortal(rootPart)
 
-        -- Give Slap Battles time to update isInArena.
-        task.wait(ARENA_RETRY_DELAY)
+        -- Required delay before checking isInArena.
+        task.wait(POST_RESPAWN_DELAY)
 
-        -- IMPORTANT:
-        -- Refresh the character reference after touching the portal.
-        -- Some transitions can replace or update the character hierarchy.
+        --==========================================
+        -- REFRESH CHARACTER
+        --==========================================
+
         character = getCharacter()
 
-        if character and isCharacterInArena(character) then
+        if character and isInArena(character) then
             return
         end
 
-        -- Still not in arena -> loop and touch again.
+        -- Still not in arena.
+        -- Loop and touch the portal again after 0.2 sec.
+        task.wait(ARENA_RETRY_DELAY)
     end
 end
 
@@ -603,10 +660,12 @@ end
 --==================================================
 
 local function followLoop()
-    local workerId = arenaWorkerId
-
-    while helperRunning and workerId == arenaWorkerId do
+    while helperRunning do
         task.wait(FOLLOW_DELAY)
+
+        if not helperRunning then
+            break
+        end
 
         local character = getCharacter()
 
@@ -614,28 +673,31 @@ local function followLoop()
             continue
         end
 
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local humanoid = getHumanoid(character)
         local rootPart = getRoot(character)
 
         if not humanoid
             or humanoid.Health <= 0
             or not rootPart then
+
             continue
         end
 
-        if not isCharacterInArena(character) then
+        -- Never move the character outside the arena.
+        if not isInArena(character) then
             continue
         end
 
-        local ragdollValue = character:FindFirstChild("Ragdolled")
+        --==========================================
+        -- RAGDOLL
+        --==========================================
+
+        local ragdolled = character:FindFirstChild("Ragdolled")
 
         local isCurrentlyRagdolled =
-            ragdollValue ~= nil
-            and ragdollValue.Value == true
-
-        --==========================================
-        -- RAGDOLL DETECTION
-        --==========================================
+            ragdolled ~= nil
+            and ragdolled:IsA("BoolValue")
+            and ragdolled.Value == true
 
         if isCurrentlyRagdolled and not wasRagdolled then
             wasRagdolled = true
@@ -646,7 +708,8 @@ local function followLoop()
             if autoResetEnabled
                 and currentRagdolls >= ragdollLimit then
 
-                local resetEvent = LocalPlayer:FindFirstChild("Reset")
+                local resetEvent =
+                    LocalPlayer:FindFirstChild("Reset")
 
                 if not alreadyReset and resetEvent then
                     local success = pcall(function()
@@ -655,6 +718,7 @@ local function followLoop()
 
                     if success then
                         alreadyReset = true
+
                         currentRagdolls = 0
                         stats_Resets += 1
                     end
@@ -666,6 +730,7 @@ local function followLoop()
             alreadyReset = false
         end
 
+        -- Don't move while reset/ragdoll handling is active.
         if alreadyReset then
             continue
         end
@@ -673,16 +738,19 @@ local function followLoop()
         if isCurrentlyRagdolled
             and autoResetEnabled
             and currentRagdolls >= ragdollLimit then
+
             continue
         end
 
         --==========================================
-        -- TARGET FOLLOW
+        -- PLAYER MODE
         --==========================================
 
         if targetMode == "Player" then
+
             if not targetPlayer
                 or targetPlayer.Parent ~= Players then
+
                 continue
             end
 
@@ -693,14 +761,15 @@ local function followLoop()
             end
 
             local targetHumanoid =
-                targetCharacter:FindFirstChildOfClass("Humanoid")
+                getHumanoid(targetCharacter)
 
             local targetRoot =
-                targetCharacter:FindFirstChild("HumanoidRootPart")
+                getRoot(targetCharacter)
 
             if not targetHumanoid
                 or targetHumanoid.Health <= 0
                 or not targetRoot then
+
                 continue
             end
 
@@ -711,11 +780,17 @@ local function followLoop()
             if not isCurrentlyRagdolled then
                 pcall(function()
                     rootPart.CFrame =
-                        targetRoot.CFrame * CFrame.new(0, 0, -4)
+                        targetRoot.CFrame
+                        * CFrame.new(0, 0, -4)
                 end)
             end
 
+        --==========================================
+        -- POSITION MODE
+        --==========================================
+
         elseif targetMode == "Position" then
+
             if savedCFrame and not isCurrentlyRagdolled then
                 pcall(function()
                     rootPart.CFrame = savedCFrame
@@ -734,7 +809,8 @@ ModeBtn.MouseButton1Click:Connect(function()
         targetMode = "Position"
 
         ModeBtn.Text = "Target: Saved Position"
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 40)
+        ModeBtn.BackgroundColor3 =
+            Color3.fromRGB(150, 100, 40)
 
         PlayerTextBox.Visible = false
         PosFrame.Visible = true
@@ -742,7 +818,8 @@ ModeBtn.MouseButton1Click:Connect(function()
         targetMode = "Player"
 
         ModeBtn.Text = "Target: Player"
-        ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 150)
+        ModeBtn.BackgroundColor3 =
+            Color3.fromRGB(40, 100, 150)
 
         PlayerTextBox.Visible = true
         PosFrame.Visible = false
@@ -755,29 +832,38 @@ end)
 
 SavePosBtn.MouseButton1Click:Connect(function()
     local character = getCharacter()
-    local rootPart = getRoot(character)
 
-    if not character or not rootPart then
+    if not character then
         notify("Character not found.")
         return
     end
 
-    -- Never save a position outside the arena.
-    if not isCharacterInArena(character) then
+    local rootPart = getRoot(character)
+
+    if not rootPart then
+        notify("HumanoidRootPart not found.")
+        return
+    end
+
+    -- Position can ONLY be saved from inside the arena.
+    if not isInArena(character) then
         notify("You must be in the arena to save a position.")
         return
     end
 
     savedCFrame = rootPart.CFrame
 
+    local position = savedCFrame.Position
+
     PosLabel.Text = string.format(
         "%.1f, %.1f, %.1f",
-        savedCFrame.Position.X,
-        savedCFrame.Position.Y,
-        savedCFrame.Position.Z
+        position.X,
+        position.Y,
+        position.Z
     )
 
-    PosLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PosLabel.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
 
     notify("Position saved successfully.")
 end)
@@ -787,13 +873,23 @@ end)
 --==================================================
 
 RagdollInput.FocusLost:Connect(function()
-    local num = tonumber(RagdollInput.Text)
+    local number = tonumber(RagdollInput.Text)
 
-    if num and num > 0 and num < math.huge then
-        ragdollLimit = math.max(1, math.floor(num))
-        RagdollInput.Text = tostring(ragdollLimit)
+    if number
+        and number > 0
+        and number < math.huge then
+
+        ragdollLimit = math.max(
+            1,
+            math.floor(number)
+        )
+
+        RagdollInput.Text =
+            tostring(ragdollLimit)
     else
-        RagdollInput.Text = tostring(ragdollLimit)
+        RagdollInput.Text =
+            tostring(ragdollLimit)
+
         notify("Invalid ragdoll limit.")
     end
 end)
@@ -807,10 +903,12 @@ ToggleReset.MouseButton1Click:Connect(function()
 
     if autoResetEnabled then
         ToggleReset.Text = "Auto-Reset: ON"
-        ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+        ToggleReset.BackgroundColor3 =
+            Color3.fromRGB(40, 120, 40)
     else
         ToggleReset.Text = "Auto-Reset: OFF"
-        ToggleReset.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+        ToggleReset.BackgroundColor3 =
+            Color3.fromRGB(120, 40, 40)
     end
 end)
 
@@ -840,11 +938,11 @@ IY.MouseButton1Click:Connect(function()
 end)
 
 --==================================================
--- BRAZIL PORTAL TOUCH
+-- DISABLE BRAZIL TOUCH
 --==================================================
 
 pcall(function()
-    local lobby = workspace:WaitForChild("Lobby", 10)
+    local lobby = workspace:FindFirstChild("Lobby")
 
     if not lobby then
         return
@@ -872,15 +970,21 @@ StartBtn.MouseButton1Click:Connect(function()
         return
     end
 
+    --==============================================
+    -- VALIDATE TARGET
+    --==============================================
+
     if targetMode == "Player" then
-        local nameInput = PlayerTextBox.Text
+        local nameInput =
+            PlayerTextBox.Text
 
         if nameInput == "" then
             notify("Please enter a player's name.")
             return
         end
 
-        local player = findPlayer(nameInput)
+        local player =
+            findPlayer(nameInput)
 
         if not player then
             notify("Player not found.")
@@ -889,12 +993,17 @@ StartBtn.MouseButton1Click:Connect(function()
 
         targetPlayer = player
 
-    else
+    elseif targetMode == "Position" then
+
         if not savedCFrame then
             notify("You need to save a position first.")
             return
         end
     end
+
+    --==============================================
+    -- START STATE
+    --==============================================
 
     helperRunning = true
 
@@ -906,9 +1015,21 @@ StartBtn.MouseButton1Click:Connect(function()
 
     resetStatsUI()
 
-    arenaWorkerId += 1
+    -- Invalidate any old arena worker.
+    arenaWorkerToken += 1
 
+    --==============================================
+    -- START ALL WORKERS IMMEDIATELY
+    --==============================================
+
+    -- Timer does NOT wait for arena.
     task.spawn(updateStatsLoop)
+
+    -- Follow loop does NOT wait for arena.
+    -- It simply ignores movement until isInArena == true.
+    task.spawn(followLoop)
+
+    -- Arena entry runs independently.
     task.spawn(enterArena)
 
     notify("Helper started.")
@@ -925,8 +1046,8 @@ StopBtn.MouseButton1Click:Connect(function()
 
     helperRunning = false
 
-    -- Invalidate all running workers.
-    arenaWorkerId += 1
+    -- Invalidate any active arena worker.
+    arenaWorkerToken += 1
 
     resetStatsUI()
 
@@ -938,9 +1059,11 @@ end)
 --==================================================
 
 Minimize.MouseButton1Click:Connect(function()
-    local minimized = StartBtn.Visible == false
+    local minimized =
+        StartBtn.Visible == false
 
     for _, child in ipairs(Frame:GetChildren()) do
+
         if child ~= Title
             and child ~= Close
             and child ~= Minimize
@@ -949,11 +1072,13 @@ Minimize.MouseButton1Click:Connect(function()
 
             if child == PosFrame then
                 child.Visible =
-                    minimized and targetMode == "Position"
+                    minimized
+                    and targetMode == "Position"
 
             elseif child == PlayerTextBox then
                 child.Visible =
-                    minimized and targetMode == "Player"
+                    minimized
+                    and targetMode == "Player"
 
             else
                 child.Visible = minimized
@@ -962,9 +1087,11 @@ Minimize.MouseButton1Click:Connect(function()
     end
 
     if minimized then
-        Frame.Size = UDim2.new(0, 300, 0, 310)
+        Frame.Size =
+            UDim2.new(0, 300, 0, 310)
     else
-        Frame.Size = UDim2.new(0, 300, 0, 35)
+        Frame.Size =
+            UDim2.new(0, 300, 0, 35)
     end
 end)
 
@@ -975,7 +1102,7 @@ end)
 Close.MouseButton1Click:Connect(function()
     helperRunning = false
 
-    arenaWorkerId += 1
+    arenaWorkerToken += 1
 
     if ScreenGui then
         ScreenGui:Destroy()
@@ -989,40 +1116,54 @@ end)
 --==================================================
 
 LocalPlayer.CharacterAdded:Connect(function(character)
+
     if not helperRunning then
         return
     end
 
-    -- Invalidate the previous arena worker.
-    arenaWorkerId += 1
-
-    local workerId = arenaWorkerId
+    -- Invalidate the previous arena-entry worker.
+    arenaWorkerToken += 1
 
     alreadyReset = false
     wasRagdolled = false
     currentRagdolls = 0
 
+    local myToken = arenaWorkerToken
+
     task.spawn(function()
-        -- Wait until the new character is actually usable.
+
+        --==========================================
+        -- WAIT FOR NEW CHARACTER
+        --==========================================
+
         local rootPart =
-            character:WaitForChild("HumanoidRootPart", 10)
+            character:WaitForChild(
+                "HumanoidRootPart",
+                10
+            )
 
         if not rootPart then
             return
         end
 
-        if not helperRunning or workerId ~= arenaWorkerId then
-            return
-        end
+        --==========================================
+        -- POST-RESPAWN DELAY
+        --==========================================
 
-        -- Required post-respawn delay.
         task.wait(POST_RESPAWN_DELAY)
 
-        if not helperRunning or workerId ~= arenaWorkerId then
+        if not helperRunning then
             return
         end
 
-        -- Start the retry cycle.
+        if myToken ~= arenaWorkerToken then
+            return
+        end
+
+        --==========================================
+        -- ENTER ARENA
+        --==========================================
+
         enterArena()
     end)
 end)
