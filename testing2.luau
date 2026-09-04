@@ -1122,9 +1122,6 @@ local function followLoop()
             local targetRoot =
                 targetCharacter:FindFirstChild("HumanoidRootPart")
 
-            local isTargetInArenaV2 =
-                targetCharacter:FindFirstChild("KillstreakLevel")
-
             --==================================================
             -- ORIGINAL VALIDATION
             --==================================================
