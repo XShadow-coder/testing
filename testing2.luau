@@ -495,9 +495,6 @@ local function isTargetReady(player)
     local isTargetInArena =
         targetCharacter:FindFirstChild("isInArena")
 
-    local isTargetInArenaV2 =
-        targetCharacter:FindFirstChild("KillstreakLevel")
-
     local targetHumanoid =
         targetCharacter:FindFirstChildOfClass("Humanoid")
 
@@ -512,8 +509,6 @@ local function isTargetReady(player)
         return false
     end
 
-    if not isTargetInArenaV2
-        and not isTargetInArena.Value then
 
         return false
     end
@@ -1135,8 +1130,6 @@ local function followLoop()
                 continue
             end
 
-            if not isTargetInArenaV2
-                and not isTargetInArena.Value then
 
                 task.wait()
                 continue
