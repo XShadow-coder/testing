@@ -95,7 +95,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 0, 35)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Killstreak Helper V3.3"
+Title.Text = "Killstreak Helper V3.5"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
@@ -308,8 +308,6 @@ local stats_StartTime = 0
 local stats_Ragdolls = 0
 local stats_Resets = 0
 
-local arenaWorkerId = 0
-
 --==================================================
 -- STATS
 --==================================================
@@ -342,54 +340,12 @@ local function getCharacter(player)
     return nil
 end
 
-local function getHumanoid(character)
-    if not character then return nil end
-    return character:FindFirstChildOfClass("Humanoid")
-end
-
-local function getRootPart(character)
-    if not character then return nil end
-    return character:FindFirstChild("HumanoidRootPart")
-end
-
---==================================================
--- OUR ARENA CHECK
---==================================================
-
 local function isPlayerInArena(player)
     local character = getCharacter(player)
     if not character then return false end
     local isInArena = character:FindFirstChild("isInArena")
     if not isInArena then return false end
     return isInArena.Value == true
-end
-
---==================================================
--- GET TARGET
---==================================================
-
-local function getValidTarget()
-    if targetMode ~= "Player" then return nil end
-    if not targetPlayer or targetPlayer.Parent ~= Players then return nil end
-
-    local targetCharacter = targetPlayer.Character
-    if not targetCharacter then return nil end
-
-    local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
-    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-    local targetIsInArena = targetCharacter:FindFirstChild("isInArena")
-
-    -- Check if humanoid is valid and target has isInArena tag
-    if not targetIsInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
-        return nil
-    end
-
-    -- Return nil if the value is false
-    if not targetIsInArena.Value then
-        return nil
-    end
-
-    return targetCharacter, targetHumanoid, targetRoot
 end
 
 --==================================================
@@ -400,7 +356,6 @@ local function findPlayer(input)
     input = tostring(input or ""):gsub("^%s*(.-)%s*$", "%1")
     if input == "" then return nil end
 
-    -- Se è un numero puro, prova a cercare tramite UserId
     if tonumber(input) then
         local success, player = pcall(function()
             return Players:GetPlayerByUserId(tonumber(input))
@@ -408,7 +363,6 @@ local function findPlayer(input)
         if success and player then return player end
     end
 
-    -- Altrimenti cerca per nome o displayName
     local lowerInput = input:lower()
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Name:lower() == lowerInput or player.DisplayName:lower() == lowerInput then
@@ -452,7 +406,7 @@ SavePosBtn.MouseButton1Click:Connect(function()
     local character = getCharacter(LocalPlayer)
     if not character then notify("Character not found.") return end
 
-    local rootPart = getRootPart(character)
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then notify("HumanoidRootPart not found.") return end
 
     if not isPlayerInArena(LocalPlayer) then
@@ -524,82 +478,11 @@ pcall(function()
 end)
 
 --==================================================
--- PORTAL
+-- FOLLOW / MAIN LOGIC
 --==================================================
 
-local function getPortal()
-    local lobby = workspace:FindFirstChild("Lobby")
-    if not lobby then return nil end
-    local portal = lobby:FindFirstChild("Teleport1")
-    if portal and portal:IsA("BasePart") then return portal end
-    return nil
-end
-
-local function triggerPortal(rootPart)
-    if not rootPart then return false end
-    local portal = getPortal()
-    if not portal then return false end
-
-    local success, err = pcall(function()
-        rootPart.CFrame = portal.CFrame
-    end)
-
-    if not success then
-        warn("[KS Helper] CFrame teleport failed: " .. tostring(err))
-        return false
-    end
-    return true
-end
-
---==================================================
--- ENTER ARENA
---==================================================
-
-local function enterArena(workerId)
-    while helperRunning and workerId == arenaWorkerId do
-        if not targetPlayer or targetPlayer.Parent ~= Players then
-            task.wait(0.5)
-            continue
-        end
-
-        local targetCharacter = targetPlayer.Character
-        local targetIsInArena = targetCharacter and targetCharacter:FindFirstChild("isInArena")
-
-        -- Solo check per isInArena (il valore deve essere true)
-        if not targetIsInArena or not targetIsInArena.Value then
-            task.wait(0.5)
-            continue
-        end
-
-        local character = getCharacter(LocalPlayer)
-        if not character then task.wait(0.2) continue end
-
-        local humanoid = getHumanoid(character)
-        local rootPart = getRootPart(character)
-        if not humanoid or humanoid.Health <= 0 or not rootPart then
-            task.wait(0.2)
-            continue
-        end
-
-        local isInArena = character:FindFirstChild("isInArena")
-        if isInArena and isInArena.Value then
-            return -- Già dentro, il follow loop penserà a teletrasportarlo sul target
-        end
-
-        local touched = triggerPortal(rootPart)
-        if not touched then task.wait(0.2) continue end
-
-        task.wait(0.2)
-    end
-end
-
---==================================================
--- FOLLOW TARGET
---==================================================
-
-local function followLoop()
+local function followTarget()
     while helperRunning and (targetMode == "Position" or targetPlayer) do
-
         local character = LocalPlayer.Character
         if not character then task.wait() continue end
 
@@ -613,6 +496,8 @@ local function followLoop()
         if not rootPart then task.wait() continue end
 
         local ragdolled = character:FindFirstChild("Ragdolled")
+        local resetEvent = LocalPlayer:FindFirstChild("Reset")
+
         local isCurrentlyRagdolled = ragdolled and ragdolled:IsA("BoolValue") and ragdolled.Value
 
         if isCurrentlyRagdolled and not wasRagdolled then
@@ -624,7 +509,6 @@ local function followLoop()
         end
 
         if isCurrentlyRagdolled and autoResetEnabled and currentRagdolls >= ragdollLimit and not alreadyReset then
-            local resetEvent = LocalPlayer:FindFirstChild("Reset")
             if resetEvent then
                 local success, err = pcall(function() resetEvent:FireServer() end)
                 if success then
@@ -641,8 +525,24 @@ local function followLoop()
         if alreadyReset then task.wait() continue end
 
         if targetMode == "Player" then
-            local targetCharacter, targetHumanoid, targetRoot = getValidTarget()
-            if not targetCharacter or not targetRoot then task.wait() continue end
+            if not targetPlayer or targetPlayer.Parent ~= Players then task.wait() continue end
+            local targetCharacter = targetPlayer.Character
+            if not targetCharacter then task.wait() continue end
+
+            local targetIsInArena = targetCharacter:FindFirstChild("isInArena")
+            local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+            local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+
+            if not targetIsInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
+                task.wait()
+                continue
+            end
+
+            if not targetIsInArena.Value then
+                task.wait()
+                continue
+            end
+
             if not isCurrentlyRagdolled then
                 pcall(function()
                     rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -4)
@@ -654,7 +554,42 @@ local function followLoop()
                 pcall(function() rootPart.CFrame = savedCFrame end)
             end
         end
+
         task.wait()
+    end
+end
+
+local function enterArena()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+    local isInArena = character:FindFirstChild("isInArena")
+
+    if not rootPart then return end
+
+    -- Se siamo GIÀ in arena, saltiamo il portale e partiamo subito col follow
+    if isInArena and isInArena.Value == true then
+        task.spawn(followTarget)
+        return
+    end
+
+    while helperRunning and targetMode == "Player" and targetPlayer do
+        local targetCharacter = targetPlayer.Character
+        if targetCharacter then
+            local targetIsInArena = targetCharacter:FindFirstChild("isInArena")
+
+            if targetIsInArena and targetIsInArena.Value then
+                local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
+                if portal and portal:IsA("BasePart") then
+                    rootPart.CFrame = portal.CFrame
+                end
+                break
+            end
+        end
+        task.wait(0.2)
+    end
+
+    if helperRunning then
+        task.spawn(followTarget)
     end
 end
 
@@ -698,12 +633,14 @@ StartBtn.MouseButton1Click:Connect(function()
     stats_StartTime = os.clock()
 
     resetStatsUI()
-    arenaWorkerId += 1
-    local workerId = arenaWorkerId
 
     task.spawn(updateStatsLoop)
-    task.spawn(followLoop)
-    task.spawn(function() enterArena(workerId) end)
+
+    if targetMode == "Player" then
+        task.spawn(enterArena)
+    else
+        task.spawn(followTarget)
+    end
 
     notify("Helper started.")
 end)
@@ -715,7 +652,6 @@ end)
 StopBtn.MouseButton1Click:Connect(function()
     if not helperRunning then return end
     helperRunning = false
-    arenaWorkerId += 1
     notify("Helper stopped.")
 end)
 
@@ -751,7 +687,6 @@ end)
 
 Close.MouseButton1Click:Connect(function()
     helperRunning = false
-    arenaWorkerId += 1
     if ScreenGui then ScreenGui:Destroy() end
     getgenv().KsHelper_Loaded = nil
 end)
@@ -762,17 +697,13 @@ end)
 
 LocalPlayer.CharacterAdded:Connect(function(character)
     if not helperRunning then return end
-    arenaWorkerId += 1
-    local workerId = arenaWorkerId
     alreadyReset = false
     wasRagdolled = false
     currentRagdolls = 0
 
-    task.spawn(function()
-        local root = character:WaitForChild("HumanoidRootPart", 10)
-        if not root then return end
-        task.wait(0.2)
-        if not helperRunning or workerId ~= arenaWorkerId then return end
-        enterArena(workerId)
-    end)
+    if targetMode == "Player" and targetPlayer then
+        task.spawn(enterArena)
+    elseif targetMode == "Position" then
+        task.spawn(followTarget)
+    end
 end)
