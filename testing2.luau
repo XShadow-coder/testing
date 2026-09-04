@@ -284,4 +284,301 @@ StopCorner.CornerRadius = UDim.new(0, 7)
 StopCorner.Parent = StopBtn
 
 -- 5. Utility
-local IYBtn =
+local IYBtn = Instance.new("TextButton")
+IYBtn.Size = UDim2.new(1, 0, 0, 30)
+IYBtn.Position = UDim2.new(0, 0, 0, 166)
+IYBtn.Text = "🌐 Load Infinite Yield"
+IYBtn.BackgroundColor3 = THEME.Card
+IYBtn.TextColor3 = THEME.Text
+IYBtn.Font = Enum.Font.GothamMedium
+IYBtn.TextSize = 12
+IYBtn.Parent = ContentContainer
+
+local IYCorner = Instance.new("UICorner")
+IYCorner.CornerRadius = UDim.new(0, 7)
+IYCorner.Parent = IYBtn
+
+local IYStroke = Instance.new("UIStroke")
+IYStroke.Color = THEME.Border
+IYStroke.Parent = IYBtn
+
+-- Label di Stato
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.Position = UDim2.new(0, 0, 0, 202)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Status: Ready"
+StatusLabel.TextColor3 = THEME.TextDim
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 11
+StatusLabel.Parent = ContentContainer
+
+-- === FUNZIONE NOTIFICHE ===
+local function notify(message)
+    StarterGui:SetCore("SendNotification", {
+        Title = "KS Helper",
+        Text = message,
+        Duration = 2.5
+    })
+end
+
+-- === LOGICA E STATO ===
+local helperRunning = false
+local autoResetEnabled = true
+local targetPlayer = nil
+local targetMode = "Player" -- "Player" o "Position"
+local savedCFrame = nil
+
+local ragdollLimit = 1
+local currentRagdolls = 0
+local wasRagdolled = false
+local alreadyReset = false
+
+-- === LOGICA DELLA UI ===
+ModeSelector.MouseButton1Click:Connect(function()
+    if targetMode == "Player" then
+        targetMode = "Position"
+        ModeSelector.Text = "📍 Mode: Fixed Position"
+        ModeSelector.BackgroundColor3 = Color3.fromRGB(120, 70, 190)
+        PlayerInput.Visible = false
+        PosButton.Visible = true
+    else
+        targetMode = "Player"
+        ModeSelector.Text = "🎯 Mode: Follow Player"
+        ModeSelector.BackgroundColor3 = THEME.AccentBlue
+        PlayerInput.Visible = true
+        PosButton.Visible = false
+    end
+end)
+
+PosButton.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        savedCFrame = char.HumanoidRootPart.CFrame
+        PosButton.Text = "✓ Position Saved!"
+        PosButton.BackgroundColor3 = THEME.AccentGreen
+        task.delay(1.5, function()
+            PosButton.Text = "📍 Update Saved Position"
+            PosButton.BackgroundColor3 = THEME.Card
+        end)
+    else
+        notify("Character not found!")
+    end
+end)
+
+RagdollBox.FocusLost:Connect(function()
+    local num = tonumber(RagdollBox.Text)
+    if num and num > 0 then
+        ragdollLimit = math.floor(num)
+        RagdollBox.Text = tostring(ragdollLimit)
+    else
+        RagdollBox.Text = tostring(ragdollLimit)
+        notify("Enter a valid number!")
+    end
+end)
+
+ToggleResetBtn.MouseButton1Click:Connect(function()
+    autoResetEnabled = not autoResetEnabled
+    if autoResetEnabled then
+        ToggleResetBtn.Text = "Auto-Reset: ON"
+        ToggleResetBtn.BackgroundColor3 = THEME.AccentGreen
+    else
+        ToggleResetBtn.Text = "Auto-Reset: OFF"
+        ToggleResetBtn.BackgroundColor3 = THEME.AccentRed
+    end
+end)
+
+IYBtn.MouseButton1Click:Connect(function()
+    if getgenv().IY_LOADED then
+        notify("Infinite Yield is already running!")
+        return
+    end
+    local success = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end)
+    if not success then notify("Infinite Yield failed to load") end
+end)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    local isMinimized = ContentContainer.Visible
+    ContentContainer.Visible = not isMinimized
+    MainFrame.Size = isMinimized and UDim2.new(0, 300, 0, 36) or UDim2.new(0, 300, 0, 310)
+    MinimizeBtn.Text = isMinimized and "+" or "—"
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    helperRunning = false
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+    getgenv().KsHelper_Loaded = nil
+end)
+
+-- === DISABILITA PORTALE BRAZIL ===
+for _, part in ipairs(workspace:WaitForChild("Lobby"):WaitForChild("brazil"):GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.CanTouch = false
+    end
+end
+
+-- === LOGICA CORE GAMEPLAY ===
+local function findPlayer(nickname)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower():find(nickname:lower()) or player.DisplayName:lower():find(nickname:lower()) then
+            return player
+        end
+    end
+    return nil
+end
+
+local function followLoop()
+    while helperRunning do
+        task.wait()
+        local character = LocalPlayer.Character
+        if not character then continue end
+
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoid or humanoid.Health <= 0 or not rootPart then continue end
+
+        local isInArena = character:FindFirstChild("isInArena")
+        if not isInArena or not isInArena.Value then continue end
+
+        -- Contatore Ragdoll
+        local ragdolled = character:FindFirstChild("Ragdolled")
+        local isCurrentlyRagdolled = (ragdolled and ragdolled.Value)
+
+        if isCurrentlyRagdolled and not wasRagdolled then
+            wasRagdolled = true
+            currentRagdolls = currentRagdolls + 1
+            StatusLabel.Text = "Status: Ragdolled (" .. currentRagdolls .. "/" .. ragdollLimit .. ")"
+
+            if autoResetEnabled and currentRagdolls >= ragdollLimit then
+                local resetEvent = LocalPlayer:FindFirstChild("Reset")
+                if not alreadyReset and resetEvent then
+                    resetEvent:FireServer()
+                    alreadyReset = true
+                    currentRagdolls = 0
+                    StatusLabel.Text = "Status: Auto-Resetting..."
+                end
+            end
+        elseif not isCurrentlyRagdolled then
+            wasRagdolled = false
+            alreadyReset = false
+        end
+
+        if alreadyReset or (isCurrentlyRagdolled and autoResetEnabled and currentRagdolls >= ragdollLimit) then
+            continue
+        end
+
+        -- Teletrasporto / Movimento
+        if targetMode == "Player" then
+            if not targetPlayer then continue end
+            local targetCharacter = targetPlayer.Character
+            if not targetCharacter then continue end
+
+            local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+            local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+            local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
+            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
+
+            if not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then continue end
+            if (not isTargetInArenaV2) and (not isTargetInArena or not isTargetInArena.Value) then continue end
+
+            if not isCurrentlyRagdolled then
+                rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -4)
+                StatusLabel.Text = "Status: Following " .. targetPlayer.DisplayName
+            end
+
+        elseif targetMode == "Position" then
+            if savedCFrame and not isCurrentlyRagdolled then
+                rootPart.CFrame = savedCFrame
+                StatusLabel.Text = "Status: Holding Position"
+            end
+        end
+    end
+end
+
+local function enterArena()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local isInArena = character:WaitForChild("isInArena")
+
+    StatusLabel.Text = "Status: Waiting for Arena..."
+
+    while helperRunning do
+        if isInArena.Value then
+            break 
+        end
+
+        if targetMode == "Player" and targetPlayer then
+            local tChar = targetPlayer.Character
+            if tChar then
+                local tArena = tChar:FindFirstChild("isInArena")
+                local tArena2 = tChar:FindFirstChild("KillstreakLevel")
+
+                if (tArena and tArena.Value) or tArena2 then
+                    local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
+                    if portal and portal:IsA("BasePart") then
+                        rootPart.CFrame = portal.CFrame
+                    end
+                    break
+                end
+            end
+        elseif targetMode == "Position" then
+            local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
+            if portal and portal:IsA("BasePart") then
+                rootPart.CFrame = portal.CFrame
+            end
+            break
+        end
+        task.wait(0.2)
+    end
+
+    if helperRunning then
+        task.spawn(followLoop)
+    end
+end
+
+local function startHelper()
+    if targetMode == "Player" then
+        local nameInput = PlayerInput.Text
+        if nameInput == "" then
+            notify("Please enter a player's name!")
+            return
+        end
+
+        local player = findPlayer(nameInput)
+        if not player then
+            notify("Player not found in server!")
+            return
+        end
+        targetPlayer = player
+    else
+        if not savedCFrame then
+            notify("Save a position first!")
+            return
+        end
+    end
+
+    helperRunning = true
+    currentRagdolls = 0
+    wasRagdolled = false
+    alreadyReset = false
+    task.spawn(enterArena)
+end
+
+local function stopHelper()
+    helperRunning = false
+    StatusLabel.Text = "Status: Stopped"
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+    if helperRunning then
+        alreadyReset = false
+        enterArena()
+    end
+end)
+
+StartBtn.MouseButton1Click:Connect(startHelper)
+StopBtn.MouseButton1Click:Connect(stopHelper)
