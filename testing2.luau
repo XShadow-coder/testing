@@ -27,7 +27,9 @@ if getgenv().KsHelper_Loaded then
     return
 end
 
-pcall(function() getgenv().KsHelper_Loaded = true end)
+pcall(function()
+    getgenv().KsHelper_Loaded = true
+end)
 
 if not game:IsLoaded() then
     game.Loaded:Wait()
@@ -41,17 +43,23 @@ local LocalPlayer = cloneref(Players.LocalPlayer)
 local guiParent = (gethui and gethui()) or CoreGui:FindFirstChild("RobloxGui") or CoreGui
 
 --==================================================
--- RANDOM NAME & GUI
+-- RANDOM STRING
 --==================================================
 
 local function randomString()
-	local length = math.random(10,20)
-	local array = {}
-	for i = 1, length do
-		array[i] = string.char(math.random(32, 126))
-	end
-	return table.concat(array)
+    local length = math.random(10, 20)
+    local array = {}
+
+    for i = 1, length do
+        array[i] = string.char(math.random(32, 126))
+    end
+
+    return table.concat(array)
 end
+
+--==================================================
+-- GUI
+--==================================================
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = randomString()
@@ -185,6 +193,10 @@ IY_UICorner.Name = randomString()
 IY_UICorner.CornerRadius = UDim.new(0, 6)
 IY_UICorner.Parent = IY
 
+--==================================================
+-- NOTIFICATION
+--==================================================
+
 local function notify(message)
     StarterGui:SetCore("SendNotification", {
         Title = "Error",
@@ -193,8 +205,13 @@ local function notify(message)
     })
 end
 
+--==================================================
+-- AUTO RESET TOGGLE
+--==================================================
+
 ToggleReset.MouseButton1Click:Connect(function()
     autoResetEnabled = not autoResetEnabled
+
     if autoResetEnabled then
         ToggleReset.Text = "Auto-Reset: ON"
         ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
@@ -204,14 +221,20 @@ ToggleReset.MouseButton1Click:Connect(function()
     end
 end)
 
+--==================================================
+-- INFINITE YIELD
+--==================================================
+
 IY.MouseButton1Click:Connect(function()
     if getgenv().IY_LOADED then
         notify("Infinite Yield is already running!")
         return
     end
 
-    local success, err = pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    local success = pcall(function()
+        loadstring(game:HttpGet(
+            "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"
+        ))()
     end)
 
     if not success then
@@ -219,117 +242,243 @@ IY.MouseButton1Click:Connect(function()
     end
 end)
 
--- Impostazione parti brazil (senza toccare il portale)
-for _, part in ipairs(workspace:WaitForChild("Lobby"):WaitForChild("brazil"):GetDescendants()) do
+--==================================================
+-- BRAZIL
+--==================================================
+
+for _, part in ipairs(
+    workspace:WaitForChild("Lobby"):WaitForChild("brazil"):GetDescendants()
+) do
     if part:IsA("BasePart") then
         part.CanTouch = false
     end
 end
 
+--==================================================
+-- VARIABLES
+--==================================================
+
 local helperRunning = false
-local targetPlayer
+local targetPlayer = nil
 local alreadyReset = false
 
+--==================================================
+-- PLAYER SEARCH
+--==================================================
+
 local function findPlayer(nickname)
+    nickname = nickname:lower()
+
     for _, player in ipairs(Players:GetPlayers()) do
-        if player.Name:lower():find(nickname:lower()) or player.DisplayName:lower():find(nickname:lower()) then
+        if player.Name:lower():find(nickname)
+            or player.DisplayName:lower():find(nickname) then
+
             return player
         end
     end
+
     return nil
 end
 
+--==================================================
+-- FOLLOW TARGET
+--==================================================
+
 local function followTarget()
     while helperRunning and targetPlayer do
+
         local character = LocalPlayer.Character
-        if not character then task.wait(0.1) continue end
+
+        if not character then
+            task.wait(0.1)
+            continue
+        end
 
         local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if not humanoid or humanoid.Health <= 0 then task.wait(0.1) continue end
+
+        if not humanoid or humanoid.Health <= 0 then
+            task.wait(0.1)
+            continue
+        end
 
         local isInArena = character:FindFirstChild("isInArena")
-        if not isInArena or not isInArena.Value then task.wait(0.1) continue end
+
+        if not isInArena or not isInArena.Value then
+            task.wait(0.1)
+            continue
+        end
 
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         local ragdolled = character:FindFirstChild("Ragdolled")
         local resetEvent = LocalPlayer:FindFirstChild("Reset")
 
         local targetCharacter = targetPlayer.Character
-        if not targetCharacter then task.wait(0.1) continue end
 
-        local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
-        local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
-        local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-        local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
-
-        if(not isTargetInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0) then
+        if not targetCharacter then
             task.wait(0.1)
             continue
         end
 
-        if(not isTargetInArenaV2) and (not isTargetInArena.Value) then
+        local isTargetInArena =
+            targetCharacter:FindFirstChild("isInArena")
+
+        local targetHumanoid =
+            targetCharacter:FindFirstChildOfClass("Humanoid")
+
+        local targetRoot =
+            targetCharacter:FindFirstChild("HumanoidRootPart")
+
+        local isTargetInArenaV2 =
+            targetCharacter:FindFirstChild("KillstreakLevel")
+
+        if not isTargetInArena
+            or not targetRoot
+            or not targetHumanoid
+            or targetHumanoid.Health <= 0 then
+
             task.wait(0.1)
             continue
         end
+
+        if not isTargetInArenaV2
+            and not isTargetInArena.Value then
+
+            task.wait(0.1)
+            continue
+        end
+
+        --==================================================
+        -- RAGDOLL / AUTO RESET
+        --==================================================
 
         if ragdolled and ragdolled.Value then
+
             if autoResetEnabled then
+
                 if not alreadyReset and resetEvent then
                     resetEvent:FireServer()
                     alreadyReset = true
                 end
+
             end
+
         else
+
             alreadyReset = false
+
             if rootPart then
-                rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -4)
+                rootPart.CFrame =
+                    targetRoot.CFrame * CFrame.new(0, 0, -4)
             end
+
         end
+
         task.wait()
     end
 end
 
-local function enterArena()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local rootPart = character:WaitForChild("HumanoidRootPart")
-    local isInArena = character:FindFirstChild("isInArena")
+--==================================================
+-- ENTER ARENA
+--==================================================
 
-    -- Se siamo GIÀ in arena, saltiamo il portale ed avviamo subito il follow
+local function enterArena()
+    local character =
+        LocalPlayer.Character
+        or LocalPlayer.CharacterAdded:Wait()
+
+    local rootPart =
+        character:WaitForChild("HumanoidRootPart")
+
+    local isInArena =
+        character:FindFirstChild("isInArena")
+
+    -- Already inside the arena
     if isInArena and isInArena.Value == true then
         task.spawn(followTarget)
         return
     end
 
     while helperRunning and targetPlayer do
-        local targetCharacter = targetPlayer.Character
-        if targetCharacter then
-            local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
-            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
 
-            if(isTargetInArena and isTargetInArena.Value) or isTargetInArenaV2 then
-                local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
-                if portal and portal:IsA("BasePart") then
-                    rootPart.CFrame = portal.CFrame
-                end
+        -- Refresh character/root in case Roblox recreated them
+        character = LocalPlayer.Character
+
+        if not character then
+            task.wait(0.2)
+            continue
+        end
+
+        rootPart = character:FindFirstChild("HumanoidRootPart")
+
+        if not rootPart then
+            task.wait(0.2)
+            continue
+        end
+
+        isInArena = character:FindFirstChild("isInArena")
+
+        -- Already inside the arena
+        if isInArena and isInArena.Value == true then
+            break
+        end
+
+        --==================================================
+        -- DIRECT TELEPORT TO TELEPORT1
+        -- SAME METHOD AS KILLSTREAK HELPER
+        --==================================================
+
+        local lobby = workspace:FindFirstChild("Lobby")
+        local portal = lobby and lobby:FindFirstChild("Teleport1")
+
+        if portal and portal:IsA("BasePart") then
+            rootPart.CFrame = portal.CFrame
+        end
+
+        task.wait(0.2)
+
+        -- Check whether the teleport worked
+        character = LocalPlayer.Character
+
+        if character then
+            isInArena = character:FindFirstChild("isInArena")
+
+            if isInArena and isInArena.Value then
                 break
             end
         end
+
+        -- Retry if the first teleport did not register
         task.wait(0.2)
     end
+
+    --==================================================
+    -- START FOLLOWING
+    --==================================================
 
     if helperRunning then
         task.spawn(followTarget)
     end
 end
 
+--==================================================
+-- START
+--==================================================
+
 local function startHelper()
+
+    if helperRunning then
+        return
+    end
+
     local nameInput = TextBox.Text
+
     if nameInput == "" then
         notify("Enter a player's name!")
         return
     end
 
     local player = findPlayer(nameInput)
+
     if not player then
         notify("Player not found!")
         return
@@ -337,39 +486,83 @@ local function startHelper()
 
     targetPlayer = player
     helperRunning = true
+    alreadyReset = false
+
     task.spawn(enterArena)
 end
 
+--==================================================
+-- STOP
+--==================================================
+
 local function stopHelper()
     helperRunning = false
+    alreadyReset = false
 end
 
+--==================================================
+-- MINIMIZE
+--==================================================
+
 Minimize.MouseButton1Click:Connect(function()
+
     local minimized = TextBox.Visible == false
+
     for _, child in ipairs(Frame:GetChildren()) do
-        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
-            if child ~= Title and child ~= Close and child ~= Minimize then
+
+        if child:IsA("TextLabel")
+            or child:IsA("TextButton")
+            or child:IsA("TextBox") then
+
+            if child ~= Title
+                and child ~= Close
+                and child ~= Minimize then
+
                 child.Visible = minimized
             end
         end
     end
-    Frame.Size = minimized and UDim2.new(0, 250, 0, 200) or UDim2.new(0, 250, 0, 30)
+
+    Frame.Size =
+        minimized
+        and UDim2.new(0, 250, 0, 200)
+        or UDim2.new(0, 250, 0, 30)
 end)
 
+--==================================================
+-- CLOSE
+--==================================================
+
 Close.MouseButton1Click:Connect(function()
+
     stopHelper()
+
     if ScreenGui then
         ScreenGui:Destroy()
     end
+
     getgenv().KsHelper_Loaded = nil
 end)
 
+--==================================================
+-- RESPAWN
+--==================================================
+
 LocalPlayer.CharacterAdded:Connect(function()
+
     if helperRunning and targetPlayer then
+
         alreadyReset = false
+
+        task.wait(0.2)
+
         task.spawn(enterArena)
     end
 end)
+
+--==================================================
+-- BUTTONS
+--==================================================
 
 Start.MouseButton1Click:Connect(startHelper)
 Stop.MouseButton1Click:Connect(stopHelper)
