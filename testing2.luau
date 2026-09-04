@@ -1,285 +1,461 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local cloneref = cloneref or function(...) return ... end
 
--- ==========================================
--- UI
--- ==========================================
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "MatchStateTester"
-gui.ResetOnSpawn = false
-gui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 280)
-frame.Position = UDim2.new(0, 20, 0.5, -140)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-frame.BorderSizePixel = 0
-frame.Parent = gui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = frame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 35)
-title.BackgroundTransparency = 1
-title.Text = "Match State Tester"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.TextSize = 18
-title.Font = Enum.Font.GothamBold
-title.Parent = frame
-
-local status = Instance.new("TextLabel")
-status.Position = UDim2.new(0, 10, 0, 40)
-status.Size = UDim2.new(1, -20, 0, 25)
-status.BackgroundTransparency = 1
-status.TextColor3 = Color3.fromRGB(180, 180, 180)
-status.TextSize = 13
-status.Font = Enum.Font.Gotham
-status.Text = "Starting..."
-status.Parent = frame
-
-local labels = {}
-
-local names = {
-    "InBus",
-    "Bus Detected",
-    "Glider Detected",
-    "Freefall Detected",
-    "Ready Timer",
-    "isMatchReady",
-    "Humanoid State"
+local sbPlaceIds = {
+    [6403373529] = true,
+    [11520107397] = true,
+    [124596094333302] = true,
+    [9015014224] = true,
+    [78262906459073] = true,
 }
 
-for i, name in ipairs(names) do
-    local label = Instance.new("TextLabel")
-    label.Position = UDim2.new(0, 12, 0, 68 + ((i - 1) * 27))
-    label.Size = UDim2.new(1, -24, 0, 24)
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    label.TextSize = 14
-    label.Font = Enum.Font.Gotham
-    label.Text = name .. ": false"
-    label.Parent = frame
-
-    labels[name] = label
+if not sbPlaceIds[game.PlaceId] then
+    local MarketplaceService = cloneref(game:GetService("MarketplaceService"))
+    local gameName = MarketplaceService:GetProductInfo(game.PlaceId).Name or "another game"
+    print("This script is for Slap Battles, but you are in " .. gameName)
+    return
 end
 
-local function setValue(name, value)
-    local label = labels[name]
-    if not label then return end
+if getgenv().KsHelper_Loaded then
+    return
+end
 
-    label.Text = name .. ": " .. tostring(value)
+pcall(function() getgenv().KsHelper_Loaded = true end)
 
-    if value == true then
-        label.TextColor3 = Color3.fromRGB(80, 220, 100)
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local StarterGui = cloneref(game:GetService("StarterGui"))
+local Players = cloneref(game:GetService("Players"))
+local LocalPlayer = cloneref(Players.LocalPlayer)
+
+local guiParent = (gethui and gethui()) or CoreGui:FindFirstChild("RobloxGui") or CoreGui
+
+local function randomString()
+	local length = math.random(10,20)
+	local array = {}
+	for i = 1, length do
+		array[i] = string.char(math.random(32, 126))
+	end
+	return table.concat(array)
+end
+
+-- === INTERFACCIA GRAFICA ===
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = randomString()
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = guiParent
+
+local Frame = Instance.new("Frame")
+Frame.Name = randomString()
+Frame.Size = UDim2.new(0, 280, 0, 280)
+Frame.Position = UDim2.new(0.5, -140, 0.5, -140)
+Frame.BackgroundColor3 = Color3.fromRGB(36, 36, 37)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.Name = randomString()
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Name = randomString()
+UIStroke.Color = Color3.fromRGB(60, 60, 60)
+UIStroke.Parent = Frame
+
+local Title = Instance.new("TextLabel")
+Title.Name = randomString()
+Title.Size = UDim2.new(1, -30, 0, 30)
+Title.Position = UDim2.new(0, 25, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Killstreak Helper V2"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Frame
+
+local Minimize = Instance.new("TextButton")
+Minimize.Name = randomString()
+Minimize.Size = UDim2.new(0, 25, 0, 25)
+Minimize.Position = UDim2.new(1, -60, 0, 2)
+Minimize.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Minimize.Text = "_"
+Minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
+Minimize.Font = Enum.Font.GothamBold
+Minimize.TextSize = 18
+Minimize.Parent = Frame
+local MinimizeUICorner = Instance.new("UICorner")
+MinimizeUICorner.CornerRadius = UDim.new(0, 6)
+MinimizeUICorner.Parent = Minimize
+
+local Close = Instance.new("TextButton")
+Close.Name = randomString()
+Close.Size = UDim2.new(0, 25, 0, 25)
+Close.Position = UDim2.new(1, -30, 0, 2)
+Close.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Close.Text = "X"
+Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 14
+Close.Parent = Frame
+local CloseUICorner = Instance.new("UICorner")
+CloseUICorner.CornerRadius = UDim.new(0, 6)
+CloseUICorner.Parent = Close
+
+local TextBox = Instance.new("TextBox")
+TextBox.Name = randomString()
+TextBox.Position = UDim2.new(0.5, -130, 0, 40)
+TextBox.Size = UDim2.new(0, 260, 0, 30)
+TextBox.Text = ""
+TextBox.PlaceholderText = "Player's name"
+TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Font = Enum.Font.Gotham
+TextBox.TextSize = 14
+TextBox.Parent = Frame
+
+local Start = Instance.new("TextButton")
+Start.Name = randomString()
+Start.Position = UDim2.new(0.5, -130, 0, 80)
+Start.Size = UDim2.new(0, 125, 0, 30)
+Start.Text = "Start"
+Start.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+Start.TextColor3 = Color3.fromRGB(255, 255, 255)
+Start.Font = Enum.Font.GothamBold
+Start.TextSize = 14
+Start.Parent = Frame
+
+local Stop = Instance.new("TextButton")
+Stop.Name = randomString()
+Stop.Position = UDim2.new(0.5, 5, 0, 80)
+Stop.Size = UDim2.new(0, 125, 0, 30)
+Stop.Text = "Stop"
+Stop.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+Stop.TextColor3 = Color3.fromRGB(255, 255, 255)
+Stop.Font = Enum.Font.GothamBold
+Stop.TextSize = 14
+Stop.Parent = Frame
+
+local ModeBtn = Instance.new("TextButton")
+ModeBtn.Name = randomString()
+ModeBtn.Position = UDim2.new(0.5, -130, 0, 120)
+ModeBtn.Size = UDim2.new(0, 260, 0, 30)
+ModeBtn.Text = "Target: Player"
+ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+ModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ModeBtn.Font = Enum.Font.GothamBold
+ModeBtn.TextSize = 14
+ModeBtn.Parent = Frame
+
+local SetPosBtn = Instance.new("TextButton")
+SetPosBtn.Name = randomString()
+SetPosBtn.Position = UDim2.new(0.5, -130, 0, 160)
+SetPosBtn.Size = UDim2.new(0, 260, 0, 30)
+SetPosBtn.Text = "Save Current Position"
+SetPosBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+SetPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SetPosBtn.Font = Enum.Font.GothamBold
+SetPosBtn.TextSize = 14
+SetPosBtn.Parent = Frame
+
+local ToggleReset = Instance.new("TextButton")
+ToggleReset.Name = randomString()
+ToggleReset.Position = UDim2.new(0.5, -130, 0, 200)
+ToggleReset.Size = UDim2.new(0, 150, 0, 30)
+ToggleReset.Text = "Auto-Reset: ON"
+ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+ToggleReset.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleReset.Font = Enum.Font.GothamBold
+ToggleReset.TextSize = 14
+ToggleReset.Parent = Frame
+
+local RagdollInput = Instance.new("TextBox")
+RagdollInput.Name = randomString()
+RagdollInput.Position = UDim2.new(0.5, 30, 0, 200)
+RagdollInput.Size = UDim2.new(0, 100, 0, 30)
+RagdollInput.Text = "1"
+RagdollInput.PlaceholderText = "Ragdoll limit"
+RagdollInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+RagdollInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+RagdollInput.Font = Enum.Font.GothamBold
+RagdollInput.TextSize = 14
+RagdollInput.Parent = Frame
+
+local IY = Instance.new("TextButton")
+IY.Name = randomString()
+IY.Position = UDim2.new(0.5, -130, 0, 240)
+IY.Size = UDim2.new(0, 260, 0, 25)
+IY.Text = "Execute Infinite Yield"
+IY.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+IY.TextColor3 = Color3.fromRGB(255, 255, 255)
+IY.Font = Enum.Font.GothamBold
+IY.TextSize = 14
+IY.Parent = Frame
+local IY_UICorner = Instance.new("UICorner")
+IY_UICorner.CornerRadius = UDim.new(0, 6)
+IY_UICorner.Parent = IY
+
+local function notify(message)
+    StarterGui:SetCore("SendNotification", {
+        Title = "KS Helper",
+        Text = message,
+        Duration = 3
+    })
+end
+
+-- === VARIABILI LOGICA ===
+local helperRunning = false
+local autoResetEnabled = true
+local targetPlayer = nil
+
+local targetMode = "Player" -- o "Position"
+local savedCFrame = nil
+
+local ragdollLimit = 1
+local currentRagdolls = 0
+local wasRagdolled = false
+local alreadyReset = false
+
+-- === EVENTI BOTTONI ===
+ModeBtn.MouseButton1Click:Connect(function()
+    if targetMode == "Player" then
+        targetMode = "Position"
+        ModeBtn.Text = "Target: Saved Position"
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 150)
+        TextBox.PlaceholderText = "Mode: Position (Name ignored)"
     else
-        label.TextColor3 = Color3.fromRGB(220, 220, 220)
+        targetMode = "Player"
+        ModeBtn.Text = "Target: Player"
+        ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+        TextBox.PlaceholderText = "Player's name"
     end
-end
+end)
 
--- ==========================================
--- SISTEMA STATO MATCH
--- ==========================================
+SetPosBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        savedCFrame = char.HumanoidRootPart.CFrame
+        notify("Position Saved successfully!")
+    else
+        notify("Character not found!")
+    end
+end)
 
-local isMatchReady = false
+RagdollInput.FocusLost:Connect(function()
+    local num = tonumber(RagdollInput.Text)
+    if num and num > 0 then
+        ragdollLimit = math.floor(num)
+        RagdollInput.Text = tostring(ragdollLimit)
+    else
+        RagdollInput.Text = tostring(ragdollLimit)
+        notify("Invalid number for ragdoll limit")
+    end
+end)
 
-local busDetected = false
-local gliderDetected = false
-local freefallDetected = false
+ToggleReset.MouseButton1Click:Connect(function()
+    autoResetEnabled = not autoResetEnabled
+    if autoResetEnabled then
+        ToggleReset.Text = "Auto-Reset: ON"
+        ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+    else
+        ToggleReset.Text = "Auto-Reset: OFF"
+        ToggleReset.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    end
+end)
 
-local cycleId = 0
-local readyTimerActive = false
-
-local function resetMatchState()
-    isMatchReady = false
-
-    busDetected = false
-    gliderDetected = false
-    freefallDetected = false
-
-    readyTimerActive = false
-    cycleId = cycleId + 1
-
-    status.Text = "Waiting..."
-end
-
-local function startReadyTimer(delayTime, expectedCycle, expectedCharacter)
-
-    if readyTimerActive then
+IY.MouseButton1Click:Connect(function()
+    if getgenv().IY_LOADED then
+        notify("Infinite Yield is already running!")
         return
     end
-
-    readyTimerActive = true
-
-    status.Text = "Timer: " .. delayTime .. "s"
-
-    task.delay(delayTime, function()
-
-        if expectedCycle ~= cycleId then
-            readyTimerActive = false
-            return
-        end
-
-        if player.Character ~= expectedCharacter then
-            readyTimerActive = false
-            return
-        end
-
-        if expectedCharacter:GetAttribute("InBus") == true then
-            readyTimerActive = false
-            return
-        end
-
-        local humanoid = expectedCharacter:FindFirstChildOfClass("Humanoid")
-
-        if not humanoid then
-            readyTimerActive = false
-            return
-        end
-
-        if humanoid:GetState() ~= Enum.HumanoidStateType.Running then
-            readyTimerActive = false
-            return
-        end
-
-        isMatchReady = true
-        readyTimerActive = false
-
-        status.Text = "READY"
+    local success = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
     end)
+    if not success then notify("Infinite Yield failed to load") end
+end)
+
+for _, part in ipairs(workspace:WaitForChild("Lobby"):WaitForChild("brazil"):GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.CanTouch = false
+    end
 end
 
-player.CharacterAdded:Connect(function(character)
-    resetMatchState()
-
-    task.spawn(function()
-        local humanoid = character:WaitForChild("Humanoid", 5)
-
-        if player.Character ~= character then
-            return
-        end
-
-        if not humanoid then
-            return
-        end
-    end)
-end)
-
--- ==========================================
--- DETECTION
--- ==========================================
-
-task.spawn(function()
-
-    while task.wait(0.1) do
-
-        local char = player.Character
-
-        if not char then
-            resetMatchState()
-            continue
-        end
-
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-
-        if not humanoid then
-            continue
-        end
-
-        local inBus = char:GetAttribute("InBus")
-        local state = humanoid:GetState()
-        local glider = char:FindFirstChild("Glider")
-
-        -- UI
-        setValue("InBus", inBus == true)
-        setValue("Bus Detected", busDetected)
-        setValue("Glider Detected", gliderDetected)
-        setValue("Freefall Detected", freefallDetected)
-        setValue("Ready Timer", readyTimerActive)
-        setValue("isMatchReady", isMatchReady)
-
-        labels["Humanoid State"].Text = "Humanoid State: " .. state.Name
-
-        -- READY
-        if isMatchReady then
-
-            if inBus == true then
-                status.Text = "New cycle detected"
-                resetMatchState()
-            end
-
-            continue
-        end
-
-        -- BUS
-        if inBus == true and not busDetected then
-
-            busDetected = true
-            gliderDetected = false
-            freefallDetected = false
-            readyTimerActive = false
-
-            status.Text = "BUS detected"
-        end
-
-        -- GLIDER
-        if busDetected
-            and inBus == nil
-            and glider
-            and not gliderDetected then
-
-            gliderDetected = true
-            status.Text = "GLIDER detected"
-        end
-
-        -- FREEFALL
-        if gliderDetected
-            and state == Enum.HumanoidStateType.Freefall
-            and not freefallDetected then
-
-            freefallDetected = true
-            status.Text = "FREEFALL detected"
-        end
-
-        -- FULL CYCLE
-        if freefallDetected
-            and state == Enum.HumanoidStateType.Running
-            and inBus == nil
-            and not readyTimerActive then
-
-            status.Text = "Full cycle → waiting 5s"
-
-            local thisCycle = cycleId
-
-            startReadyTimer(
-                5,
-                thisCycle,
-                char
-            )
-
-            continue
-        end
-
-        -- FALLBACK
-        if not busDetected
-            and not gliderDetected
-            and not freefallDetected
-            and state == Enum.HumanoidStateType.Running
-            and inBus == nil
-            and not readyTimerActive then
-
-            status.Text = "Already on ground → waiting 0.5s"
-
-            local thisCycle = cycleId
-
-            startReadyTimer(
-                0.5,
-                thisCycle,
-                char
-            )
+local function findPlayer(nickname)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower():find(nickname:lower()) or player.DisplayName:lower():find(nickname:lower()) then
+            return player
         end
     end
+    return nil
+end
+
+local function followLoop()
+    while helperRunning do
+        task.wait()
+        local character = LocalPlayer.Character
+        if not character then continue end
+
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if not humanoid or humanoid.Health <= 0 or not rootPart then continue end
+
+        local isInArena = character:FindFirstChild("isInArena")
+        if not isInArena or not isInArena.Value then continue end
+
+        -- LOGICA RAGDOLL
+        local ragdolled = character:FindFirstChild("Ragdolled")
+        local isCurrentlyRagdolled = (ragdolled and ragdolled.Value)
+
+        if isCurrentlyRagdolled and not wasRagdolled then
+            wasRagdolled = true
+            currentRagdolls = currentRagdolls + 1
+
+            if autoResetEnabled and currentRagdolls >= ragdollLimit then
+                local resetEvent = LocalPlayer:FindFirstChild("Reset")
+                if not alreadyReset and resetEvent then
+                    resetEvent:FireServer()
+                    alreadyReset = true
+                    currentRagdolls = 0 
+                end
+            end
+        elseif not isCurrentlyRagdolled then
+            wasRagdolled = false
+            alreadyReset = false
+        end
+
+        -- Blocca il movimento se stiamo resettando
+        if alreadyReset or (isCurrentlyRagdolled and autoResetEnabled and currentRagdolls >= ragdollLimit) then
+            continue
+        end
+
+        -- LOGICA MOVIMENTO
+        if targetMode == "Player" then
+            if not targetPlayer then continue end
+            local targetCharacter = targetPlayer.Character
+            if not targetCharacter then continue end
+
+            local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+            local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
+            local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
+            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
+
+            if not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then continue end
+            if (not isTargetInArenaV2) and (not isTargetInArena or not isTargetInArena.Value) then continue end
+
+            if not isCurrentlyRagdolled then
+                rootPart.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -4)
+            end
+
+        elseif targetMode == "Position" then
+            if savedCFrame and not isCurrentlyRagdolled then
+                rootPart.CFrame = savedCFrame
+            end
+        end
+    end
+end
+
+local function enterArena()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local isInArena = character:WaitForChild("isInArena")
+
+    while helperRunning do
+        if isInArena.Value then
+            break 
+        end
+
+        if targetMode == "Player" and targetPlayer then
+            local tChar = targetPlayer.Character
+            if tChar then
+                local tArena = tChar:FindFirstChild("isInArena")
+                local tArena2 = tChar:FindFirstChild("KillstreakLevel")
+
+                if (tArena and tArena.Value) or tArena2 then
+                    local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
+                    if portal and portal:IsA("BasePart") then
+                        rootPart.CFrame = portal.CFrame
+                    end
+                    break
+                end
+            end
+        elseif targetMode == "Position" then
+            local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
+            if portal and portal:IsA("BasePart") then
+                rootPart.CFrame = portal.CFrame
+            end
+            break
+        end
+        task.wait(0.2)
+    end
+
+    if helperRunning then
+        task.spawn(followLoop)
+    end
+end
+
+local function startHelper()
+    if targetMode == "Player" then
+        local nameInput = TextBox.Text
+        if nameInput == "" then
+            notify("Enter a player's name!")
+            return
+        end
+
+        local player = findPlayer(nameInput)
+        if not player then
+            notify("Player not found!")
+            return
+        end
+        targetPlayer = player
+    else
+        if not savedCFrame then
+            notify("You need to save a position first!")
+            return
+        end
+    end
+
+    helperRunning = true
+    currentRagdolls = 0
+    wasRagdolled = false
+    alreadyReset = false
+    task.spawn(enterArena)
+end
+
+local function stopHelper()
+    helperRunning = false
+end
+
+Minimize.MouseButton1Click:Connect(function()
+    local minimized = TextBox.Visible == false
+    for _, child in ipairs(Frame:GetChildren()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+            if child ~= Title and child ~= Close and child ~= Minimize then
+                child.Visible = minimized
+            end
+        end
+    end
+    Frame.Size = minimized and UDim2.new(0, 280, 0, 280) or UDim2.new(0, 280, 0, 30)
 end)
+
+Close.MouseButton1Click:Connect(function()
+    stopHelper()
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+    getgenv().KsHelper_Loaded = nil
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    if helperRunning then
+        alreadyReset = false
+        enterArena()
+    end
+end)
+
+Start.MouseButton1Click:Connect(startHelper)
+Stop.MouseButton1Click:Connect(stopHelper)
