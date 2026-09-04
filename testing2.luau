@@ -574,36 +574,28 @@ end
 -- PLAYER SEARCH
 --==================================================
 
-local function findPlayer(nickname)
+local function findPlayer(input)
+    input = tostring(input or ""):gsub("^%s*(.-)%s*$", "%1")
+    if input == "" then return nil end
 
-    nickname =
-        tostring(nickname or ""):lower()
-
-    if nickname == "" then
-        return nil
+    if tonumber(input) then
+        local success, player = pcall(function()
+            return Players:GetPlayerByUserId(tonumber(input))
+        end)
+        if success and player then
+            return player
+        end
     end
 
-    for _, player in ipairs(
-        Players:GetPlayers()
-    ) do
-
-        local username =
-            player.Name:lower()
-
-        local displayName =
-            player.DisplayName:lower()
-
-        if username:find(
-            nickname,
-            1,
-            true
-        )
-        or displayName:find(
-            nickname,
-            1,
-            true
-        ) then
-
+    local lowerInput = input:lower()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower() == lowerInput or player.DisplayName:lower() == lowerInput then
+            return player
+        end
+    end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower():find(lowerInput, 1, true) or player.DisplayName:lower():find(lowerInput, 1, true) then
             return player
         end
     end
