@@ -155,7 +155,7 @@ SavePosBtn.TextSize = 13
 SavePosBtn.Parent = PosFrame
 Instance.new("UICorner", SavePosBtn).CornerRadius = UDim.new(0, 6)
 
--- Auto Reset Container
+-- Auto Reset Container (Dimensioni corrette per non uscire fuori dai 300px)
 local ToggleReset = Instance.new("TextButton")
 ToggleReset.Position = UDim2.new(0, 15, 0, 125)
 ToggleReset.Size = UDim2.new(0.65, -5, 0, 30)
@@ -168,7 +168,7 @@ ToggleReset.Parent = Frame
 Instance.new("UICorner", ToggleReset).CornerRadius = UDim.new(0, 6)
 
 local RagdollInput = Instance.new("TextBox")
-RagdollInput.Position = UDim2.new(0.65, 15, 0, 125)
+RagdollInput.Position = UDim2.new(0.65, 10, 0, 125)
 RagdollInput.Size = UDim2.new(0.35, -5, 0, 30)
 RagdollInput.Text = "1"
 RagdollInput.PlaceholderText = "Limit"
@@ -291,7 +291,7 @@ SavePosBtn.MouseButton1Click:Connect(function()
         PosLabel.Text = string.format("%.1f, %.1f, %.1f", savedCFrame.X, savedCFrame.Y, savedCFrame.Z)
         PosLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        notify("Character non trovato!")
+        notify("Character not found!")
     end
 end)
 
@@ -302,7 +302,7 @@ RagdollInput.FocusLost:Connect(function()
         RagdollInput.Text = tostring(ragdollLimit)
     else
         RagdollInput.Text = tostring(ragdollLimit)
-        notify("Numero invalido")
+        notify("Invalid number")
     end
 end)
 
@@ -319,13 +319,13 @@ end)
 
 IY.MouseButton1Click:Connect(function()
     if getgenv().IY_LOADED then
-        notify("Infinite Yield è già attivo!")
+        notify("Infinite Yield is already running!")
         return
     end
     local success = pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
     end)
-    if not success then notify("Errore nel caricamento di IY") end
+    if not success then notify("Failed to load Infinite Yield") end
 end)
 
 for _, part in ipairs(workspace:WaitForChild("Lobby"):WaitForChild("brazil"):GetDescendants()) do
@@ -415,7 +415,6 @@ local function triggerPortal(rootPart)
             task.wait()
             firetouchinterest(rootPart, portal, 1)
         else
-            -- Fallback in caso l'esecutore non supporti firetouchinterest (raro)
             rootPart.CFrame = portal.CFrame
         end
     end
@@ -460,19 +459,19 @@ StartBtn.MouseButton1Click:Connect(function()
     if targetMode == "Player" then
         local nameInput = PlayerTextBox.Text
         if nameInput == "" then
-            notify("Inserisci il nome di un giocatore!")
+            notify("Please enter a player's name!")
             return
         end
 
         local player = findPlayer(nameInput)
         if not player then
-            notify("Giocatore non trovato!")
+            notify("Player not found!")
             return
         end
         targetPlayer = player
     else
         if not savedCFrame then
-            notify("Devi salvare una posizione prima!")
+            notify("You need to save a position first!")
             return
         end
     end
