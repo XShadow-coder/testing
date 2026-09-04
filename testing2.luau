@@ -1130,7 +1130,7 @@ local function followLoop()
                 continue
             end
 
-
+            if not isTargetInArena.Value then
                 task.wait()
                 continue
             end
