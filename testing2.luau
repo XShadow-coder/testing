@@ -1089,19 +1089,22 @@ local function followLoop()
 
         if targetMode == "Player" then
 
-            if not targetPlayer
-                or targetPlayer.Parent ~= Players then
+            local targetCharacter, targetHumanoid, targetRoot = getValidTarget()
 
+            if not targetCharacter or not targetRoot then
                 task.wait()
                 continue
             end
 
-            local targetCharacter =
-                targetPlayer.Character
+            if not isCurrentlyRagdolled then
 
-            if not targetCharacter then
-                task.wait()
-                continue
+                pcall(function()
+
+                    rootPart.CFrame =
+                        targetRoot.CFrame
+                        * CFrame.new(0, 0, -4)
+
+                end)
             end
 
             --==================================================
