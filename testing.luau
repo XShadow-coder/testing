@@ -95,7 +95,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 0, 35)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Killstreak Helper V3.2"
+Title.Text = "Killstreak Helper V3.3"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
@@ -147,7 +147,7 @@ local PlayerTextBox = Instance.new("TextBox")
 PlayerTextBox.Position = UDim2.new(0, 15, 0, 85)
 PlayerTextBox.Size = UDim2.new(1, -30, 0, 30)
 PlayerTextBox.Text = ""
-PlayerTextBox.PlaceholderText = "Player's name"
+PlayerTextBox.PlaceholderText = "Player's name or ID"
 PlayerTextBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
 PlayerTextBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 PlayerTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -365,26 +365,6 @@ local function isPlayerInArena(player)
 end
 
 --==================================================
--- ORIGINAL TARGET CHECK
---==================================================
-
-local function isTargetReady(player)
-    if not player or player.Parent ~= Players then return false end
-    local targetCharacter = player.Character
-    if not targetCharacter then return false end
-
-    local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
-    local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
-    local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-
-    if not isTargetInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
-        return false
-    end
-    if not isTargetInArena.Value then return false end
-    return true
-end
-
---==================================================
 -- GET TARGET
 --==================================================
 
@@ -398,13 +378,14 @@ local function getValidTarget()
     local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
     local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
     local targetIsInArena = targetCharacter:FindFirstChild("isInArena")
-    local targetKillstreak = targetCharacter:FindFirstChild("KillstreakLevel")
 
+    -- Check if humanoid is valid and target has isInArena tag
     if not targetIsInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
         return nil
     end
 
-    if not targetKillstreak and not targetIsInArena.Value then
+    -- Return nil if the value is false
+    if not targetIsInArena.Value then
         return nil
     end
 
@@ -412,13 +393,14 @@ local function getValidTarget()
 end
 
 --==================================================
--- PLAYER SEARCH
+-- PLAYER SEARCH (Supports Username & UserID)
 --==================================================
 
 local function findPlayer(input)
     input = tostring(input or ""):gsub("^%s*(.-)%s*$", "%1")
     if input == "" then return nil end
 
+    -- Se è un numero puro, prova a cercare tramite UserId
     if tonumber(input) then
         local success, player = pcall(function()
             return Players:GetPlayerByUserId(tonumber(input))
@@ -426,6 +408,7 @@ local function findPlayer(input)
         if success and player then return player end
     end
 
+    -- Altrimenti cerca per nome o displayName
     local lowerInput = input:lower()
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Name:lower() == lowerInput or player.DisplayName:lower() == lowerInput then
@@ -581,10 +564,9 @@ local function enterArena(workerId)
 
         local targetCharacter = targetPlayer.Character
         local targetIsInArena = targetCharacter and targetCharacter:FindFirstChild("isInArena")
-        local targetKillstreak = targetCharacter and targetCharacter:FindFirstChild("KillstreakLevel")
 
-        -- CONTROLLO OTTIMIZZATO: Verifica sia isInArena che KillstreakLevel
-        if (not targetIsInArena or not targetIsInArena.Value) and not targetKillstreak then
+        -- Solo check per isInArena (il valore deve essere true)
+        if not targetIsInArena or not targetIsInArena.Value then
             task.wait(0.5)
             continue
         end
@@ -686,7 +668,7 @@ StartBtn.MouseButton1Click:Connect(function()
     if targetMode == "Player" then
         local nameInput = PlayerTextBox.Text
         if nameInput == "" then
-            notify("Please enter a player's name.")
+            notify("Please enter a player's name or ID.")
             return
         end
 
@@ -701,8 +683,6 @@ StartBtn.MouseButton1Click:Connect(function()
         end
 
         targetPlayer = player
-        -- Aggiunta ID del giocatore nel label come richiesto
-        PlayerTextBox.Text = player.Name .. " (ID: " .. player.UserId .. ")"
 
     elseif targetMode == "Position" then
         if not savedCFrame then
