@@ -45,7 +45,7 @@ end
 -- Variables
 local autoResetEnabled = true
 local autoResetLimit = 1
-local waitRagdollEnabled = true -- Nuova variabile per attendere la fine del ragdoll
+local waitRagdollEnabled = true
 local ragdollCount = 0
 local resetCount = 0
 local savedCFrame = nil
@@ -59,7 +59,7 @@ ScreenGui.Name = randomString()
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = guiParent
 
--- Dimensioni adattate a 300x410 per inserire il nuovo pulsante
+-- Dimensioni adeguate a 300x410 per il nuovo pulsante
 local Frame = Instance.new("Frame")
 Frame.Name = randomString()
 Frame.Size = UDim2.new(0, 300, 0, 410)
@@ -249,12 +249,12 @@ local MaxRagdollCorner = Instance.new("UICorner")
 MaxRagdollCorner.CornerRadius = UDim.new(0, 6)
 MaxRagdollCorner.Parent = MaxRagdollInput
 
--- NUOVO PULSANTE: Wait Ragdoll Toggle
+-- Wait Ragdoll Toggle Button
 local ToggleWaitRagdoll = Instance.new("TextButton")
 ToggleWaitRagdoll.Name = randomString()
 ToggleWaitRagdoll.Position = UDim2.new(0.5, -135, 0, 240)
 ToggleWaitRagdoll.Size = UDim2.new(0, 270, 0, 30)
-ToggleWaitRagdoll.Text = "Wait Ragdoll: ON"
+ToggleWaitRagdoll.Text = "Wait Until Unragdolled: ON"
 ToggleWaitRagdoll.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
 ToggleWaitRagdoll.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleWaitRagdoll.Font = Enum.Font.GothamBold
@@ -349,10 +349,10 @@ end)
 ToggleWaitRagdoll.MouseButton1Click:Connect(function()
     waitRagdollEnabled = not waitRagdollEnabled
     if waitRagdollEnabled then
-        ToggleWaitRagdoll.Text = "Wait Ragdoll: ON"
+        ToggleWaitRagdoll.Text = "Wait Until Unragdolled: ON"
         ToggleWaitRagdoll.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
     else
-        ToggleWaitRagdoll.Text = "Wait Ragdoll: OFF"
+        ToggleWaitRagdoll.Text = "Wait Until Unragdolled: OFF"
         ToggleWaitRagdoll.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
     end
 end)
@@ -403,7 +403,8 @@ RunService.Heartbeat:Connect(function()
         ragdollCount = ragdollCount + 1
         updateStatusUI()
 
-        if autoResetEnabled and ragdollCount >= autoResetLimit and not alreadyReset then
+        -- Reset eseguito SOLO se lo script è attivo (helperRunning == true)
+        if helperRunning and autoResetEnabled and ragdollCount >= autoResetLimit and not alreadyReset then
             local resetEvent = LocalPlayer:FindFirstChild("Reset")
             if resetEvent then
                 resetEvent:FireServer()
@@ -430,13 +431,11 @@ local function followTarget()
         local isInArena = character:FindFirstChild("isInArena")
         if not isInArena or not isInArena.Value then task.wait(0.1) continue end
 
-        -- Controllo Wait Ragdoll
-        if waitRagdollEnabled then
-            local ragdolled = character:FindFirstChild("Ragdolled")
-            if ragdolled and ragdolled.Value then
-                task.wait(0.1)
-                continue
-            end
+        -- Se il toggle 'Wait Ragdoll' è ON, ferma il TP se il mio character è in ragdoll
+        local ragdolled = character:FindFirstChild("Ragdolled")
+        if waitRagdollEnabled and ragdolled and ragdolled.Value then
+            task.wait(0.1)
+            continue
         end
 
         local rootPart = character:FindFirstChild("HumanoidRootPart")
@@ -448,17 +447,20 @@ local function followTarget()
             local targetCharacter = workspace:FindFirstChild(targetPlayer.Name)
             if not targetCharacter then task.wait(0.1) continue end
 
+            -- Controllo isInArena del target
             local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
+            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
             local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
             local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
 
-            if not isTargetInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
+            if not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
                 task.wait(0.1)
                 continue
             end
 
-            if (not isTargetInArenaV2) and (not isTargetInArena.Value) then
+            -- Attende che il target sia effettivamente in arena
+            local targetIsInArenaBool = (isTargetInArena and isTargetInArena.Value) or (isTargetInArenaV2 ~= nil)
+            if not targetIsInArenaBool then
                 task.wait(0.1)
                 continue
             end
