@@ -45,7 +45,7 @@ end
 -- Variables
 local autoResetEnabled = true
 local autoResetLimit = 1
-local waitRagdollEnabled = true -- Nuova variabile toggle ragdoll
+local waitRagdollEnabled = true
 local ragdollCount = 0
 local resetCount = 0
 local savedCFrame = nil
@@ -59,7 +59,7 @@ ScreenGui.Name = randomString()
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = guiParent
 
--- Dimensioni adeguate a 300x410 per includere il nuovo toggle
+-- Dimensioni adeguate a 300x410 per il nuovo pulsante
 local Frame = Instance.new("Frame")
 Frame.Name = randomString()
 Frame.Size = UDim2.new(0, 300, 0, 410)
@@ -186,26 +186,10 @@ local ModeCorner = Instance.new("UICorner")
 ModeCorner.CornerRadius = UDim.new(0, 6)
 ModeCorner.Parent = ModeBtn
 
--- Toggle Wait Ragdoll Button
-local WaitRagdollBtn = Instance.new("TextButton")
-WaitRagdollBtn.Name = randomString()
-WaitRagdollBtn.Position = UDim2.new(0.5, -135, 0, 160)
-WaitRagdollBtn.Size = UDim2.new(0, 270, 0, 30)
-WaitRagdollBtn.Text = "Wait Un-ragdoll: ON"
-WaitRagdollBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
-WaitRagdollBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-WaitRagdollBtn.Font = Enum.Font.GothamBold
-WaitRagdollBtn.TextSize = 13
-WaitRagdollBtn.Parent = Frame
-
-local WaitRagdollCorner = Instance.new("UICorner")
-WaitRagdollCorner.CornerRadius = UDim.new(0, 6)
-WaitRagdollCorner.Parent = WaitRagdollBtn
-
 -- Start & Stop
 local Start = Instance.new("TextButton")
 Start.Name = randomString()
-Start.Position = UDim2.new(0.5, -135, 0, 200)
+Start.Position = UDim2.new(0.5, -135, 0, 160)
 Start.Size = UDim2.new(0, 130, 0, 30)
 Start.Text = "Start"
 Start.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
@@ -220,7 +204,7 @@ StartCorner.Parent = Start
 
 local Stop = Instance.new("TextButton")
 Stop.Name = randomString()
-Stop.Position = UDim2.new(0.5, 5, 0, 200)
+Stop.Position = UDim2.new(0.5, 5, 0, 160)
 Stop.Size = UDim2.new(0, 130, 0, 30)
 Stop.Text = "Stop"
 Stop.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
@@ -236,7 +220,7 @@ StopCorner.Parent = Stop
 -- Auto-Reset Toggle & Max Ragdolls Box
 local ToggleReset = Instance.new("TextButton")
 ToggleReset.Name = randomString()
-ToggleReset.Position = UDim2.new(0.5, -135, 0, 240)
+ToggleReset.Position = UDim2.new(0.5, -135, 0, 200)
 ToggleReset.Size = UDim2.new(0, 180, 0, 30)
 ToggleReset.Text = "Auto-Reset: ON"
 ToggleReset.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
@@ -251,7 +235,7 @@ ToggleResetCorner.Parent = ToggleReset
 
 local MaxRagdollInput = Instance.new("TextBox")
 MaxRagdollInput.Name = randomString()
-MaxRagdollInput.Position = UDim2.new(0.5, 55, 0, 240)
+MaxRagdollInput.Position = UDim2.new(0.5, 55, 0, 200)
 MaxRagdollInput.Size = UDim2.new(0, 80, 0, 30)
 MaxRagdollInput.Text = "1"
 MaxRagdollInput.PlaceholderText = "Max"
@@ -264,6 +248,22 @@ MaxRagdollInput.Parent = Frame
 local MaxRagdollCorner = Instance.new("UICorner")
 MaxRagdollCorner.CornerRadius = UDim.new(0, 6)
 MaxRagdollCorner.Parent = MaxRagdollInput
+
+-- Wait Ragdoll Toggle Button
+local ToggleWaitRagdoll = Instance.new("TextButton")
+ToggleWaitRagdoll.Name = randomString()
+ToggleWaitRagdoll.Position = UDim2.new(0.5, -135, 0, 240)
+ToggleWaitRagdoll.Size = UDim2.new(0, 270, 0, 30)
+ToggleWaitRagdoll.Text = "Wait Until Unragdolled: ON"
+ToggleWaitRagdoll.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+ToggleWaitRagdoll.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleWaitRagdoll.Font = Enum.Font.GothamBold
+ToggleWaitRagdoll.TextSize = 13
+ToggleWaitRagdoll.Parent = Frame
+
+local ToggleWaitRagdollCorner = Instance.new("UICorner")
+ToggleWaitRagdollCorner.CornerRadius = UDim.new(0, 6)
+ToggleWaitRagdollCorner.Parent = ToggleWaitRagdoll
 
 -- Infinite Yield Button
 local IY = Instance.new("TextButton")
@@ -335,17 +335,6 @@ ModeBtn.MouseButton1Click:Connect(function()
     updateStatusUI()
 end)
 
-WaitRagdollBtn.MouseButton1Click:Connect(function()
-    waitRagdollEnabled = not waitRagdollEnabled
-    if waitRagdollEnabled then
-        WaitRagdollBtn.Text = "Wait Un-ragdoll: ON"
-        WaitRagdollBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
-    else
-        WaitRagdollBtn.Text = "Wait Un-ragdoll: OFF"
-        WaitRagdollBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-    end
-end)
-
 ToggleReset.MouseButton1Click:Connect(function()
     autoResetEnabled = not autoResetEnabled
     if autoResetEnabled then
@@ -354,6 +343,17 @@ ToggleReset.MouseButton1Click:Connect(function()
     else
         ToggleReset.Text = "Auto-Reset: OFF"
         ToggleReset.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    end
+end)
+
+ToggleWaitRagdoll.MouseButton1Click:Connect(function()
+    waitRagdollEnabled = not waitRagdollEnabled
+    if waitRagdollEnabled then
+        ToggleWaitRagdoll.Text = "Wait Until Unragdolled: ON"
+        ToggleWaitRagdoll.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+    else
+        ToggleWaitRagdoll.Text = "Wait Until Unragdolled: OFF"
+        ToggleWaitRagdoll.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
     end
 end)
 
@@ -430,7 +430,7 @@ local function followTarget()
         local isInArena = character:FindFirstChild("isInArena")
         if not isInArena or not isInArena.Value then task.wait(0.1) continue end
 
-        -- Controllo Ragdoll Personaggio
+        -- Se il toggle 'Wait Ragdoll' è ON, ferma il TP se il mio character è in ragdoll
         local ragdolled = character:FindFirstChild("Ragdolled")
         if waitRagdollEnabled and ragdolled and ragdolled.Value then
             task.wait(0.1)
@@ -446,18 +446,20 @@ local function followTarget()
             local targetCharacter = workspace:FindFirstChild(targetPlayer.Name)
             if not targetCharacter then task.wait(0.1) continue end
 
+            -- Controllo isInArena del target
             local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
+            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
             local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
             local targetRoot = targetCharacter:FindFirstChild("HumanoidRootPart")
-            local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
 
-            -- Se il Target NON è in arena o non è valido, aspetta
-            if not isTargetInArena or not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
+            if not targetRoot or not targetHumanoid or targetHumanoid.Health <= 0 then
                 task.wait(0.1)
                 continue
             end
 
-            if (not isTargetInArenaV2) and (not isTargetInArena.Value) then
+            -- Attende che il target sia effettivamente in arena
+            local targetIsInArenaBool = (isTargetInArena and isTargetInArena.Value) or (isTargetInArenaV2 ~= nil)
+            if not targetIsInArenaBool then
                 task.wait(0.1)
                 continue
             end
@@ -483,23 +485,6 @@ local function enterArena()
         local isInArena = character:FindFirstChild("isInArena")
         if isInArena and isInArena.Value then
             break
-        end
-
-        -- Se il target non è in arena, aspetta prima di entrare nel portale
-        if targetMode == "Player" and targetPlayer then
-            local targetCharacter = workspace:FindFirstChild(targetPlayer.Name)
-            if targetCharacter then
-                local isTargetInArena = targetCharacter:FindFirstChild("isInArena")
-                local isTargetInArenaV2 = targetCharacter:FindFirstChild("KillstreakLevel")
-                local targetInArena = (isTargetInArena and isTargetInArena.Value) or isTargetInArenaV2
-                if not targetInArena then
-                    task.wait(0.2)
-                    continue
-                end
-            else
-                task.wait(0.2)
-                continue
-            end
         end
 
         local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
