@@ -403,7 +403,6 @@ RunService.Heartbeat:Connect(function()
         ragdollCount = ragdollCount + 1
         updateStatusUI()
 
-        -- AGGIUNTO IL CONTROLLO 'helperRunning' QUI SOTTO
         if helperRunning and autoResetEnabled and ragdollCount >= autoResetLimit and not alreadyReset then
             local resetEvent = LocalPlayer:FindFirstChild("Reset")
             if resetEvent then
@@ -487,12 +486,31 @@ local function enterArena()
         if isInArena and isInArena.Value then
             break
         end
-
-        local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
-        if portal and portal:IsA("BasePart") then
-            rootPart.AssemblyLinearVelocity = Vector3.zero
-            rootPart.CFrame = portal.CFrame
+        
+        -- Controllo se il target è in arena (solo se la modalità è su Player)
+        local canEnter = true
+        if targetMode == "Player" and targetPlayer then
+            local targetChar = workspace:FindFirstChild(targetPlayer.Name)
+            if targetChar then
+                local isTargetInArena = targetChar:FindFirstChild("isInArena")
+                local isTargetInArenaV2 = targetChar:FindFirstChild("KillstreakLevel")
+                
+                if not ((isTargetInArena and isTargetInArena.Value) or isTargetInArenaV2 ~= nil) then
+                    canEnter = false
+                end
+            else
+                canEnter = false
+            end
         end
+
+        if canEnter then
+            local portal = workspace:FindFirstChild("Lobby") and workspace.Lobby:FindFirstChild("Teleport1")
+            if portal and portal:IsA("BasePart") then
+                rootPart.AssemblyLinearVelocity = Vector3.zero
+                rootPart.CFrame = portal.CFrame
+            end
+        end
+        
         task.wait(0.1)
     end
 
