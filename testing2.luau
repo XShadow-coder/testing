@@ -403,7 +403,7 @@ RunService.Heartbeat:Connect(function()
         ragdollCount = ragdollCount + 1
         updateStatusUI()
 
-        -- Reset eseguito SOLO se lo script è attivo (helperRunning == true)
+        -- AGGIUNTO IL CONTROLLO 'helperRunning' QUI SOTTO
         if helperRunning and autoResetEnabled and ragdollCount >= autoResetLimit and not alreadyReset then
             local resetEvent = LocalPlayer:FindFirstChild("Reset")
             if resetEvent then
@@ -561,15 +561,3 @@ end)
 
 Start.MouseButton1Click:Connect(startHelper)
 Stop.MouseButton1Click:Connect(stopHelper)
-
-local Lobby = workspace:WaitForChild("Lobby")
-
-local function setup(part)
-    if part:IsA("BasePart") then
-        part.CanCollide = false
-        part.CanTouch = true
-    end
-end
-
-setup(Lobby:WaitForChild("Teleport1"))
-setup(Lobby:WaitForChild("Teleport1Frame"))
