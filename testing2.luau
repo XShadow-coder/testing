@@ -561,3 +561,15 @@ end)
 
 Start.MouseButton1Click:Connect(startHelper)
 Stop.MouseButton1Click:Connect(stopHelper)
+
+local Lobby = workspace:WaitForChild("Lobby")
+
+local function setup(part)
+    if part:IsA("BasePart") then
+        part.CanCollide = false
+        part.CanTouch = true
+    end
+end
+
+setup(Lobby:WaitForChild("Teleport1"))
+setup(Lobby:WaitForChild("Teleport1Frame"))
