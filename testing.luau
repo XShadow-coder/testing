@@ -1,3 +1,3 @@
-local result = "https://raw.githubusercontent.com/BROTHAISHACKIER/BROTHAISHACKIER-HUB/refs/heads/main/Main.lua"
+local result = "loadstring(game:HttpGet("https://raw.githubusercontent.com/BROTHAISHACKIER/BROTHAISHACKIER-HUB/refs/heads/main/Main.lua"))():Run("feflexyourfps")()"
 
 toclipboard(result)
