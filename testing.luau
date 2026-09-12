@@ -458,3 +458,5 @@ end)
 updateAppearance()updateVisual()
 -- Initial state
 updateButton()
+
+print("Arceus X UI Toggle is fully loaded. [V.2.1]")
