@@ -36,14 +36,15 @@ end
 
 -- =========================================================
 -- ARCEUS X VISIBILITY TOGGLE
--- MOBILE + PC
+-- PREMIUM UI | PC + MOBILE
 -- =========================================================
 
 local UserInputService = game:GetService("UserInputService")
 local ContentProvider = game:GetService("ContentProvider")
+local TweenService = game:GetService("TweenService")
 
 -- =========================================================
--- IMAGE URLS
+-- CONFIG
 -- =========================================================
 
 local VISIBLE_URL =
@@ -52,14 +53,21 @@ local VISIBLE_URL =
 local HIDDEN_URL =
     "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4701.png"
 
+local FOLDER = "ArceusXUIToggle"
+
+local BUTTON_SIZE = 54
+local EDGE_PADDING = 10
+local DRAG_THRESHOLD = 8
+
 -- =========================================================
--- DOWNLOAD FUNCTION
+-- HTTP / FILE FUNCTIONS
 -- =========================================================
 
-local function getImage(url, fileName)
+local httpRequest = request or http_request
 
-    local folder = "ArceusXUIToggle"
-    local path = folder .. "/" .. fileName
+local function downloadImage(url, fileName)
+
+    local path = FOLDER .. "/" .. fileName
     local globalKey = "ArceusX_Asset_" .. fileName
 
     -- Fix Cache: Usa l'ID se è già stato generato in questa sessione
@@ -67,30 +75,47 @@ local function getImage(url, fileName)
         return getgenv()[globalKey]
     end
 
-    if not isfolder(folder) then
-        makefolder(folder)
-    end
-
-    if isfile(path) then
-        local asset = getcustomasset(path)
-        if getgenv then getgenv()[globalKey] = asset end
-        return asset
-    end
-
-    local httpRequest = request or http_request
-
     if not httpRequest then
         return nil
     end
 
-    local response = httpRequest({
-        Url = url,
-        Method = "GET"
-    })
+    if not isfolder(FOLDER) then
+        pcall(function()
+            makefolder(FOLDER)
+        end)
+    end
 
-    if response and response.Body then
+    if isfile(path) then
+        local success, asset = pcall(function()
+            return getcustomasset(path)
+        end)
+
+        if success then
+            if getgenv then getgenv()[globalKey] = asset end
+            return asset
+        end
+    end
+
+    local success, response = pcall(function()
+        return httpRequest({
+            Url = url,
+            Method = "GET"
+        })
+    end)
+
+    if not success or not response or not response.Body then
+        return nil
+    end
+
+    pcall(function()
         writefile(path, response.Body)
-        local asset = getcustomasset(path)
+    end)
+
+    local assetSuccess, asset = pcall(function()
+        return getcustomasset(path)
+    end)
+
+    if assetSuccess then
         if getgenv then getgenv()[globalKey] = asset end
         return asset
     end
@@ -98,11 +123,18 @@ local function getImage(url, fileName)
     return nil
 end
 
-local visibleAsset = getImage(VISIBLE_URL, "visible.png")
-local hiddenAsset = getImage(HIDDEN_URL, "hidden.png")
+-- =========================================================
+-- LOAD IMAGES
+-- =========================================================
+
+local visibleAsset =
+    downloadImage(VISIBLE_URL, "visible.png")
+
+local hiddenAsset =
+    downloadImage(HIDDEN_URL, "hidden.png")
 
 -- =========================================================
--- CREATE GUI
+-- GUI
 -- =========================================================
 
 local toggleGui = Instance.new("ScreenGui")
@@ -116,43 +148,86 @@ toggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 toggleGui.Parent = targetParent
 
 -- =========================================================
--- BUTTON
+-- SHADOW
+-- =========================================================
+
+local shadow = Instance.new("Frame")
+
+shadow.Name = "Shadow"
+
+shadow.Size = UDim2.fromOffset(
+    BUTTON_SIZE + 8,
+    BUTTON_SIZE + 8
+)
+
+shadow.Position = UDim2.fromOffset(
+    23,
+    103
+)
+
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.45
+
+shadow.ZIndex = 1
+
+shadow.Parent = toggleGui
+
+local shadowCorner = Instance.new("UICorner")
+
+shadowCorner.CornerRadius = UDim.new(0, 17)
+shadowCorner.Parent = shadow
+
+-- =========================================================
+-- MAIN BUTTON
 -- =========================================================
 
 local button = Instance.new("ImageButton")
 
 button.Name = "ToggleButton"
 
-button.Size = UDim2.fromOffset(54, 54)
-button.Position = UDim2.fromOffset(20, 100)
+button.Size = UDim2.fromOffset(
+    BUTTON_SIZE,
+    BUTTON_SIZE
+)
 
-button.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+button.Position = UDim2.fromOffset(
+    20,
+    100
+)
+
+button.BackgroundColor3 =
+    Color3.fromRGB(12, 12, 16)
+
 button.BackgroundTransparency = 0
 
 button.Image = ""
 button.AutoButtonColor = false
 
 button.Active = true
+
 button.ZIndex = 10
 
 button.Parent = toggleGui
 
 -- =========================================================
--- CORNER
+-- BUTTON CORNER
 -- =========================================================
 
-local corner = Instance.new("UICorner")
+local buttonCorner = Instance.new("UICorner")
 
-corner.CornerRadius = UDim.new(0, 15)
-corner.Parent = button
+buttonCorner.CornerRadius = UDim.new(0, 15)
+buttonCorner.Parent = button
 
 -- =========================================================
--- INTERNAL GRADIENT
+-- INNER GRADIENT
 -- =========================================================
 
 local gradient = Instance.new("UIGradient")
 
+gradient.Name = "InnerGradient"
+
 gradient.Color = ColorSequence.new({
+
     ColorSequenceKeypoint.new(
         0,
         Color3.fromRGB(7, 7, 10)
@@ -160,16 +235,18 @@ gradient.Color = ColorSequence.new({
 
     ColorSequenceKeypoint.new(
         0.5,
-        Color3.fromRGB(28, 28, 35)
+        Color3.fromRGB(30, 30, 38)
     ),
 
     ColorSequenceKeypoint.new(
         1,
         Color3.fromRGB(7, 7, 10)
     )
+
 })
 
 gradient.Rotation = 45
+
 gradient.Parent = button
 
 -- =========================================================
@@ -180,10 +257,14 @@ local imageContainer = Instance.new("Frame")
 
 imageContainer.Name = "ImageContainer"
 
-imageContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-imageContainer.Position = UDim2.fromScale(0.5, 0.5)
+imageContainer.AnchorPoint =
+    Vector2.new(0.5, 0.5)
 
-imageContainer.Size = UDim2.fromOffset(38, 38)
+imageContainer.Position =
+    UDim2.fromScale(0.5, 0.5)
+
+imageContainer.Size =
+    UDim2.fromOffset(38, 38)
 
 imageContainer.BackgroundTransparency = 1
 
@@ -191,10 +272,13 @@ imageContainer.ZIndex = 11
 
 imageContainer.Parent = button
 
-local imageCorner = Instance.new("UICorner")
+local imageContainerCorner = Instance.new("UICorner")
 
-imageCorner.CornerRadius = UDim.new(0, 11)
-imageCorner.Parent = imageContainer
+imageContainerCorner.CornerRadius =
+    UDim.new(0, 11)
+
+imageContainerCorner.Parent =
+    imageContainer
 
 -- =========================================================
 -- VISIBLE IMAGE
@@ -204,23 +288,32 @@ local visibleImage = Instance.new("ImageLabel")
 
 visibleImage.Name = "VisibleImage"
 
-visibleImage.Size = UDim2.fromScale(1, 1)
-visibleImage.Position = UDim2.fromScale(0, 0)
+visibleImage.Size =
+    UDim2.fromScale(1, 1)
+
+visibleImage.Position =
+    UDim2.fromScale(0, 0)
 
 visibleImage.BackgroundTransparency = 1
 
-visibleImage.Image = visibleAsset or ""
+visibleImage.Image =
+    visibleAsset or ""
 
-visibleImage.ScaleType = Enum.ScaleType.Fit
+visibleImage.ScaleType =
+    Enum.ScaleType.Fit
 
 visibleImage.ZIndex = 12
 
-visibleImage.Parent = imageContainer
+visibleImage.Parent =
+    imageContainer
 
 local visibleCorner = Instance.new("UICorner")
 
-visibleCorner.CornerRadius = UDim.new(0, 11)
-visibleCorner.Parent = visibleImage
+visibleCorner.CornerRadius =
+    UDim.new(0, 11)
+
+visibleCorner.Parent =
+    visibleImage
 
 -- =========================================================
 -- HIDDEN IMAGE
@@ -230,25 +323,34 @@ local hiddenImage = Instance.new("ImageLabel")
 
 hiddenImage.Name = "HiddenImage"
 
-hiddenImage.Size = UDim2.fromScale(1, 1)
-hiddenImage.Position = UDim2.fromScale(0, 0)
+hiddenImage.Size =
+    UDim2.fromScale(1, 1)
+
+hiddenImage.Position =
+    UDim2.fromScale(0, 0)
 
 hiddenImage.BackgroundTransparency = 1
 
-hiddenImage.Image = hiddenAsset or ""
+hiddenImage.Image =
+    hiddenAsset or ""
 
-hiddenImage.ScaleType = Enum.ScaleType.Fit
+hiddenImage.ScaleType =
+    Enum.ScaleType.Fit
 
 hiddenImage.Visible = false
 
 hiddenImage.ZIndex = 12
 
-hiddenImage.Parent = imageContainer
+hiddenImage.Parent =
+    imageContainer
 
 local hiddenCorner = Instance.new("UICorner")
 
-hiddenCorner.CornerRadius = UDim.new(0, 11)
-hiddenCorner.Parent = hiddenImage
+hiddenCorner.CornerRadius =
+    UDim.new(0, 11)
+
+hiddenCorner.Parent =
+    hiddenImage
 
 -- =========================================================
 -- BORDER
@@ -258,10 +360,13 @@ local border = Instance.new("UIStroke")
 
 border.Name = "Border"
 
-border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+border.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
 
 border.Thickness = 2
-border.Color = Color3.fromRGB(0, 200, 255)
+
+border.Color =
+    Color3.fromRGB(0, 200, 255)
 
 border.Parent = button
 
@@ -273,17 +378,30 @@ local glow = Instance.new("UIStroke")
 
 glow.Name = "NeonGlow"
 
-glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+glow.ApplyStrokeMode =
+    Enum.ApplyStrokeMode.Border
 
 glow.Thickness = 5
+
 glow.Transparency = 0.72
 
-glow.Color = Color3.fromRGB(0, 200, 255)
+glow.Color =
+    Color3.fromRGB(0, 200, 255)
 
 glow.Parent = button
 
 -- =========================================================
--- PRELOAD BOTH IMAGES
+-- SCALE
+-- =========================================================
+
+local scale = Instance.new("UIScale")
+
+scale.Scale = 1
+
+scale.Parent = button
+
+-- =========================================================
+-- PRELOAD
 -- =========================================================
 
 -- BLOCCO DISABILITATO PER FIXARE IL MEMORY LEAK DELLA CACHE
@@ -306,8 +424,64 @@ glow.Parent = button
 
 local hidden = false
 
+local dragging = false
+local dragStart = nil
+local startPosition = nil
+
+local movedDistance = 0
+
+local hover = false
+
 -- =========================================================
--- UPDATE APPEARANCE
+-- POSITION LIMIT
+-- =========================================================
+
+local function clampPosition(x, y)
+
+    local viewport =
+        workspace.CurrentCamera.ViewportSize
+
+    local maxX =
+        viewport.X - BUTTON_SIZE - EDGE_PADDING
+
+    local maxY =
+        viewport.Y - BUTTON_SIZE - EDGE_PADDING
+
+    x = math.clamp(
+        x,
+        EDGE_PADDING,
+        maxX
+    )
+
+    y = math.clamp(
+        y,
+        EDGE_PADDING,
+        maxY
+    )
+
+    return x, y
+
+end
+
+-- =========================================================
+-- MOVE SHADOW
+-- =========================================================
+
+local function updateShadow()
+
+    shadow.Position = UDim2.fromOffset(
+        button.Position.X.Offset + 3,
+        button.Position.Y.Offset + 3
+    )
+
+end
+
+button:GetPropertyChangedSignal(
+    "Position"
+):Connect(updateShadow)
+
+-- =========================================================
+-- VISUAL STATE
 -- =========================================================
 
 local function updateAppearance()
@@ -319,15 +493,16 @@ local function updateAppearance()
         hiddenImage.Visible = true
 
         -- White border
-        border.Color = Color3.fromRGB(
-            255,
-            255,
-            255
-        )
+        border.Color =
+            Color3.fromRGB(
+                255,
+                255,
+                255
+            )
 
         border.Thickness = 2
 
-        -- Disable neon
+        -- No neon
         glow.Transparency = 1
 
     else
@@ -337,20 +512,22 @@ local function updateAppearance()
         hiddenImage.Visible = false
 
         -- Cyan border
-        border.Color = Color3.fromRGB(
-            0,
-            200,
-            255
-        )
+        border.Color =
+            Color3.fromRGB(
+                0,
+                200,
+                255
+            )
 
         border.Thickness = 2
 
-        -- Enable neon
-        glow.Color = Color3.fromRGB(
-            0,
-            200,
-            255
-        )
+        -- Cyan glow
+        glow.Color =
+            Color3.fromRGB(
+                0,
+                200,
+                255
+            )
 
         glow.Thickness = 5
         glow.Transparency = 0.72
@@ -360,27 +537,163 @@ local function updateAppearance()
 end
 
 -- =========================================================
--- CLICK / DRAG SYSTEM
--- MOBILE + PC
+-- CLICK ANIMATION
 -- =========================================================
 
-local dragging = false
-local dragStart = nil
-local startPosition = nil
+local function clickAnimation()
 
-local movedDistance = 0
+    local downTween = TweenService:Create(
+        scale,
+        TweenInfo.new(
+            0.06,
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out
+        ),
+        {
+            Scale = 0.90
+        }
+    )
 
-local DRAG_THRESHOLD = 8
+    local upTween = TweenService:Create(
+        scale,
+        TweenInfo.new(
+            0.10,
+            Enum.EasingStyle.Back,
+            Enum.EasingDirection.Out
+        ),
+        {
+            Scale = 1
+        }
+    )
+
+    downTween:Play()
+
+    downTween.Completed:Once(function()
+        upTween:Play()
+    end)
+
+end
+
+-- =========================================================
+-- GLOW PULSE
+-- =========================================================
+
+task.spawn(function()
+
+    while toggleGui.Parent do
+
+        if not hidden then
+
+            local tweenIn = TweenService:Create(
+                glow,
+                TweenInfo.new(
+                    1.1,
+                    Enum.EasingStyle.Sine,
+                    Enum.EasingDirection.InOut
+                ),
+                {
+                    Transparency = 0.52
+                }
+            )
+
+            local tweenOut = TweenService:Create(
+                glow,
+                TweenInfo.new(
+                    1.1,
+                    Enum.EasingStyle.Sine,
+                    Enum.EasingDirection.InOut
+                ),
+                {
+                    Transparency = 0.78
+                }
+            )
+
+            tweenIn:Play()
+            tweenIn.Completed:Wait()
+
+            if hidden then
+                continue
+            end
+
+            tweenOut:Play()
+            tweenOut.Completed:Wait()
+
+        else
+
+            task.wait(0.25)
+
+        end
+
+    end
+
+end)
+
+-- =========================================================
+-- PC HOVER
+-- =========================================================
+
+if not UserInputService.TouchEnabled then
+
+    button.MouseEnter:Connect(function()
+
+        hover = true
+
+        TweenService:Create(
+            scale,
+            TweenInfo.new(
+                0.15,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Scale = 1.06
+            }
+        ):Play()
+
+    end)
+
+    button.MouseLeave:Connect(function()
+
+        hover = false
+
+        if not dragging then
+
+            TweenService:Create(
+                scale,
+                TweenInfo.new(
+                    0.15,
+                    Enum.EasingStyle.Quad,
+                    Enum.EasingDirection.Out
+                ),
+                {
+                    Scale = 1
+                }
+            ):Play()
+
+        end
+
+    end)
+
+end
+
+-- =========================================================
+-- DRAG START
+-- =========================================================
 
 button.InputBegan:Connect(function(input)
 
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or input.UserInputType ==
+        Enum.UserInputType.Touch then
 
         dragging = true
 
-        dragStart = input.Position
-        startPosition = button.Position
+        dragStart =
+            input.Position
+
+        startPosition =
+            button.Position
 
         movedDistance = 0
 
@@ -388,75 +701,133 @@ button.InputBegan:Connect(function(input)
 
 end)
 
+-- =========================================================
+-- DRAG MOVEMENT
+-- =========================================================
+
 UserInputService.InputChanged:Connect(function(input)
 
     if not dragging then
         return
     end
 
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement
-        and input.UserInputType ~= Enum.UserInputType.Touch then
+    if input.UserInputType ~=
+        Enum.UserInputType.MouseMovement
+        and input.UserInputType ~=
+        Enum.UserInputType.Touch then
 
         return
 
     end
 
-    local delta = input.Position - dragStart
+    local delta =
+        input.Position - dragStart
 
-    movedDistance = math.max(
-        movedDistance,
-        math.abs(delta.X) + math.abs(delta.Y)
-    )
+    movedDistance =
+        math.max(
+            movedDistance,
+            math.abs(delta.X)
+            + math.abs(delta.Y)
+        )
 
-    button.Position = UDim2.new(
-        startPosition.X.Scale,
-        startPosition.X.Offset + delta.X,
+    local newX =
+        startPosition.X.Offset
+        + delta.X
 
-        startPosition.Y.Scale,
-        startPosition.Y.Offset + delta.Y
-    )
+    local newY =
+        startPosition.Y.Offset
+        + delta.Y
+
+    newX, newY =
+        clampPosition(
+            newX,
+            newY
+        )
+
+    button.Position =
+        UDim2.fromOffset(
+            newX,
+            newY
+        )
 
 end)
 
+-- =========================================================
+-- DRAG END / CLICK
+-- =========================================================
+
 UserInputService.InputEnded:Connect(function(input)
 
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType ~=
+        Enum.UserInputType.MouseButton1
+        and input.UserInputType ~=
+        Enum.UserInputType.Touch then
 
-        if dragging then
+        return
 
-            -- Only toggle if it was a click,
-            -- not a drag.
-            if movedDistance < DRAG_THRESHOLD then
+    end
 
-                local arceusGui = findArceusX()
+    if not dragging then
+        return
+    end
 
-                if arceusGui then
+    dragging = false
 
-                    hidden = not hidden
+    -- It was a click
+    if movedDistance <
+        DRAG_THRESHOLD then
 
-                    arceusGui.Enabled = not hidden
+        clickAnimation()
 
-                    updateAppearance()
+        local arceusGui =
+            findArceusX()
 
-                end
-
-            end
-
+        if not arceusGui then
+            return
         end
 
-        dragging = false
+        hidden = not hidden
+
+        arceusGui.Enabled =
+            not hidden
+
+        updateAppearance()
 
     end
 
 end)
 
 -- =========================================================
--- INITIAL STATE
+-- VIEWPORT CHANGE
 -- =========================================================
 
-updateAppearance()updateVisual()
--- Initial state
-updateButton()
+workspace.CurrentCamera:GetPropertyChangedSignal(
+    "ViewportSize"
+):Connect(function()
 
-print("Arceus X UI Toggle is fully loaded. [V.2.1]")
+    local x =
+        button.Position.X.Offset
+
+    local y =
+        button.Position.Y.Offset
+
+    x, y =
+        clampPosition(
+            x,
+            y
+        )
+
+    button.Position =
+        UDim2.fromOffset(
+            x,
+            y
+        )
+
+end)
+
+-- =========================================================
+-- INITIALIZE
+-- =========================================================
+
+updateAppearance()
+updateShadow()
