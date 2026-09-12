@@ -19,13 +19,18 @@ end
 -- =========================================================
 
 local function findArceusX()
+
     for _, obj in ipairs(targetParent:GetChildren()) do
+
         if obj:IsA("ScreenGui") then
+
             if obj.DisplayOrder == 1999999999 then
                 return obj
             end
+
         end
     end
+
     return nil
 end
 
@@ -35,24 +40,29 @@ end
 -- =========================================================
 
 local UserInputService = game:GetService("UserInputService")
+local ContentProvider = game:GetService("ContentProvider")
 
 -- =========================================================
 -- IMAGE URLS
 -- =========================================================
 
-local VISIBLE_URL = "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4700.png"
-local HIDDEN_URL = "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4701.png"
+local VISIBLE_URL =
+    "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4700.png"
+
+local HIDDEN_URL =
+    "https://raw.githubusercontent.com/XShadow-coder/ArceusXUIToggle/refs/heads/main/IMG_4701.png"
 
 -- =========================================================
--- DOWNLOAD FUNCTION (CACHE FIXED)
+-- DOWNLOAD FUNCTION
 -- =========================================================
 
 local function getImage(url, fileName)
+
     local folder = "ArceusXUIToggle"
     local path = folder .. "/" .. fileName
     local globalKey = "ArceusX_Asset_" .. fileName
 
-    -- Se l'asset ID è già stato caricato in questa sessione di gioco, usalo direttamente
+    -- Fix Cache: Usa l'ID se è già stato generato in questa sessione
     if getgenv and getgenv()[globalKey] then
         return getgenv()[globalKey]
     end
@@ -61,27 +71,28 @@ local function getImage(url, fileName)
         makefolder(folder)
     end
 
-    -- Se il file non esiste, scaricalo
-    if not isfile(path) then
-        local httpRequest = request or http_request
-        if httpRequest then
-            local response = httpRequest({
-                Url = url,
-                Method = "GET"
-            })
-            if response and response.Body then
-                writefile(path, response.Body)
-            end
-        end
+    if isfile(path) then
+        local asset = getcustomasset(path)
+        if getgenv then getgenv()[globalKey] = asset end
+        return asset
     end
 
-    -- Genera l'asset ID e salvalo in memoria per le esecuzioni successive (evita duplicati)
-    if isfile(path) then
-        local assetId = getcustomasset(path)
-        if getgenv then
-            getgenv()[globalKey] = assetId
-        end
-        return assetId
+    local httpRequest = request or http_request
+
+    if not httpRequest then
+        return nil
+    end
+
+    local response = httpRequest({
+        Url = url,
+        Method = "GET"
+    })
+
+    if response and response.Body then
+        writefile(path, response.Body)
+        local asset = getcustomasset(path)
+        if getgenv then getgenv()[globalKey] = asset end
+        return asset
     end
 
     return nil
@@ -142,9 +153,20 @@ corner.Parent = button
 local gradient = Instance.new("UIGradient")
 
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(7, 7, 10)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(28, 28, 35)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(7, 7, 10))
+    ColorSequenceKeypoint.new(
+        0,
+        Color3.fromRGB(7, 7, 10)
+    ),
+
+    ColorSequenceKeypoint.new(
+        0.5,
+        Color3.fromRGB(28, 28, 35)
+    ),
+
+    ColorSequenceKeypoint.new(
+        1,
+        Color3.fromRGB(7, 7, 10)
+    )
 })
 
 gradient.Rotation = 45
@@ -157,10 +179,14 @@ gradient.Parent = button
 local imageContainer = Instance.new("Frame")
 
 imageContainer.Name = "ImageContainer"
+
 imageContainer.AnchorPoint = Vector2.new(0.5, 0.5)
 imageContainer.Position = UDim2.fromScale(0.5, 0.5)
+
 imageContainer.Size = UDim2.fromOffset(38, 38)
+
 imageContainer.BackgroundTransparency = 1
+
 imageContainer.ZIndex = 11
 
 imageContainer.Parent = button
@@ -177,13 +203,16 @@ imageCorner.Parent = imageContainer
 local visibleImage = Instance.new("ImageLabel")
 
 visibleImage.Name = "VisibleImage"
+
 visibleImage.Size = UDim2.fromScale(1, 1)
 visibleImage.Position = UDim2.fromScale(0, 0)
+
 visibleImage.BackgroundTransparency = 1
 
 visibleImage.Image = visibleAsset or ""
 
 visibleImage.ScaleType = Enum.ScaleType.Fit
+
 visibleImage.ZIndex = 12
 
 visibleImage.Parent = imageContainer
@@ -200,14 +229,18 @@ visibleCorner.Parent = visibleImage
 local hiddenImage = Instance.new("ImageLabel")
 
 hiddenImage.Name = "HiddenImage"
+
 hiddenImage.Size = UDim2.fromScale(1, 1)
 hiddenImage.Position = UDim2.fromScale(0, 0)
+
 hiddenImage.BackgroundTransparency = 1
 
 hiddenImage.Image = hiddenAsset or ""
 
 hiddenImage.ScaleType = Enum.ScaleType.Fit
+
 hiddenImage.Visible = false
+
 hiddenImage.ZIndex = 12
 
 hiddenImage.Parent = imageContainer
@@ -224,7 +257,9 @@ hiddenCorner.Parent = hiddenImage
 local border = Instance.new("UIStroke")
 
 border.Name = "Border"
+
 border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
 border.Thickness = 2
 border.Color = Color3.fromRGB(0, 200, 255)
 
@@ -237,12 +272,33 @@ border.Parent = button
 local glow = Instance.new("UIStroke")
 
 glow.Name = "NeonGlow"
+
 glow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
 glow.Thickness = 5
 glow.Transparency = 0.72
+
 glow.Color = Color3.fromRGB(0, 200, 255)
 
 glow.Parent = button
+
+-- =========================================================
+-- PRELOAD BOTH IMAGES
+-- =========================================================
+
+-- BLOCCO DISABILITATO PER FIXARE IL MEMORY LEAK DELLA CACHE
+-- task.spawn(function()
+-- 
+--     pcall(function()
+-- 
+--         ContentProvider:PreloadAsync({
+--             visibleImage,
+--             hiddenImage
+--         })
+-- 
+--     end)
+-- 
+-- end)
 
 -- =========================================================
 -- STATE
@@ -255,31 +311,52 @@ local hidden = false
 -- =========================================================
 
 local function updateAppearance()
+
     if hidden then
+
         -- Hidden image
         visibleImage.Visible = false
         hiddenImage.Visible = true
 
         -- White border
-        border.Color = Color3.fromRGB(255, 255, 255)
+        border.Color = Color3.fromRGB(
+            255,
+            255,
+            255
+        )
+
         border.Thickness = 2
 
         -- Disable neon
         glow.Transparency = 1
+
     else
+
         -- Visible image
         visibleImage.Visible = true
         hiddenImage.Visible = false
 
         -- Cyan border
-        border.Color = Color3.fromRGB(0, 200, 255)
+        border.Color = Color3.fromRGB(
+            0,
+            200,
+            255
+        )
+
         border.Thickness = 2
 
         -- Enable neon
-        glow.Color = Color3.fromRGB(0, 200, 255)
+        glow.Color = Color3.fromRGB(
+            0,
+            200,
+            255
+        )
+
         glow.Thickness = 5
         glow.Transparency = 0.72
+
     end
+
 end
 
 -- =========================================================
@@ -290,55 +367,94 @@ end
 local dragging = false
 local dragStart = nil
 local startPosition = nil
+
 local movedDistance = 0
+
 local DRAG_THRESHOLD = 8
 
 button.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
         dragging = true
+
         dragStart = input.Position
         startPosition = button.Position
+
         movedDistance = 0
+
     end
+
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if not dragging then return end
 
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
+    if not dragging then
         return
     end
 
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+
+        return
+
+    end
+
     local delta = input.Position - dragStart
-    movedDistance = math.max(movedDistance, math.abs(delta.X) + math.abs(delta.Y))
+
+    movedDistance = math.max(
+        movedDistance,
+        math.abs(delta.X) + math.abs(delta.Y)
+    )
 
     button.Position = UDim2.new(
         startPosition.X.Scale,
         startPosition.X.Offset + delta.X,
+
         startPosition.Y.Scale,
         startPosition.Y.Offset + delta.Y
     )
+
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
         if dragging then
-            -- Only toggle if it was a click, not a drag.
+
+            -- Only toggle if it was a click,
+            -- not a drag.
             if movedDistance < DRAG_THRESHOLD then
+
                 local arceusGui = findArceusX()
+
                 if arceusGui then
+
                     hidden = not hidden
+
                     arceusGui.Enabled = not hidden
+
                     updateAppearance()
+
                 end
+
             end
+
         end
+
         dragging = false
+
     end
+
 end)
 
 -- =========================================================
 -- INITIAL STATE
 -- =========================================================
 
-updateAppearance()
+updateAppearance()updateVisual()
+-- Initial state
+updateButton()
